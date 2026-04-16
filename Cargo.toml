@@ -3,8 +3,8 @@ resolver = "2"
 members = ["papagan", "papagan-node", "papagan-py", "xtask"]
 
 [workspace.package]
-edition = "2024"
-rust-version = "1.85"
+edition = "2021"
+rust-version = "1.80"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/suleymanozkeskin/papagan"
 
