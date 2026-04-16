@@ -1,7 +1,7 @@
-use lang_detect::{Detector, Lang};
+use papagan::{Detector, Lang};
 
 #[cfg(any(feature = "de", feature = "tr", feature = "ru"))]
-use lang_detect::MatchSource;
+use papagan::MatchSource;
 
 #[cfg(feature = "en")]
 #[test]

@@ -1,4 +1,4 @@
-use lang_detect::{
+use papagan::{
     Detailed as CoreDetailed, Detector as CoreDetector, Lang as CoreLang, Output as CoreOutput,
     WordScore as CoreWordScore,
 };
@@ -6,7 +6,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 fn supported_language_codes() -> Vec<String> {
-    lang_detect::supported_languages()
+    papagan::supported_languages()
         .iter()
         .map(|lang| lang.iso_639_1().to_string())
         .collect()
@@ -33,7 +33,7 @@ fn score_pairs(scores: &[(CoreLang, f32)]) -> Vec<(String, f32)> {
         .collect()
 }
 
-#[pyclass(module = "lang_detect._native", frozen)]
+#[pyclass(module = "papagan._native", frozen)]
 struct Lang;
 
 #[pymethods]
@@ -68,7 +68,7 @@ impl Lang {
     }
 }
 
-#[pyclass(skip_from_py_object, module = "lang_detect._native")]
+#[pyclass(skip_from_py_object, module = "papagan._native")]
 #[derive(Clone)]
 struct Output {
     scores: Vec<(String, f32)>,
@@ -96,7 +96,7 @@ impl From<CoreOutput> for Output {
     }
 }
 
-#[pyclass(skip_from_py_object, module = "lang_detect._native")]
+#[pyclass(skip_from_py_object, module = "papagan._native")]
 #[derive(Clone)]
 struct WordScore {
     token: String,
@@ -132,7 +132,7 @@ impl From<CoreWordScore> for WordScore {
     }
 }
 
-#[pyclass(skip_from_py_object, module = "lang_detect._native")]
+#[pyclass(skip_from_py_object, module = "papagan._native")]
 #[derive(Clone)]
 struct Detailed {
     words: Vec<WordScore>,
@@ -161,7 +161,7 @@ impl From<CoreDetailed> for Detailed {
     }
 }
 
-#[pyclass(skip_from_py_object, module = "lang_detect._native")]
+#[pyclass(skip_from_py_object, module = "papagan._native")]
 #[derive(Clone, Default)]
 struct DetectorBuilder {
     only: Option<Vec<String>>,
@@ -203,7 +203,7 @@ impl DetectorBuilder {
     }
 }
 
-#[pyclass(module = "lang_detect._native")]
+#[pyclass(module = "papagan._native")]
 struct Detector {
     inner: CoreDetector,
 }

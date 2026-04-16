@@ -1,4 +1,4 @@
-use lang_detect::{
+use papagan::{
     Detailed as CoreDetailed, Detector as CoreDetector, Lang as CoreLang, Output as CoreOutput,
     WordScore as CoreWordScore,
 };
@@ -6,7 +6,7 @@ use napi::bindgen_prelude::{Error, Result, Status};
 use napi_derive::napi;
 
 fn supported_language_codes() -> Vec<String> {
-    lang_detect::supported_languages()
+    papagan::supported_languages()
         .iter()
         .map(|lang| lang.iso_639_1().to_string())
         .collect()

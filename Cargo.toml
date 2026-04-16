@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["lang-detect", "lang-detect-node", "lang-detect-py", "xtask"]
+members = ["papagan", "papagan-node", "papagan-py", "xtask"]
 
 [workspace.package]
 edition = "2024"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/suleyman/lang-detect"
+repository = "https://github.com/suleymanozkeskin/papagan"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -1,4 +1,4 @@
-//! Training pipeline for lang-detect. See ../DESIGN.md §12.
+//! Training pipeline for papagan. See ../DESIGN.md §12.
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 use unicode_normalization::UnicodeNormalization;
 
 #[derive(Parser)]
-#[command(name = "xtask", about = "lang-detect offline tooling")]
+#[command(name = "xtask", about = "papagan offline tooling")]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -30,7 +30,7 @@ enum Cmd {
         samples: usize,
 
         /// Output TSV path (will be overwritten).
-        #[arg(long, default_value = "lang-detect/tests/fixtures/accuracy_large.tsv")]
+        #[arg(long, default_value = "papagan/tests/fixtures/accuracy_large.tsv")]
         out: String,
 
         /// Minimum character count to keep a sentence.
@@ -58,7 +58,7 @@ enum Cmd {
 
         /// Words written to words.txt. Keep headroom here — the runtime
         /// crate selects a subset via its `dict-5k` / `dict-10k` features
-        /// or the `LANG_DETECT_DICT_SIZE` env var.
+        /// or the `PAPAGAN_DICT_SIZE` env var.
         #[arg(long, default_value_t = 10_000)]
         dict_size: usize,
 
@@ -332,7 +332,7 @@ fn write_trigrams(
 }
 
 fn extract_trigrams(word: &str) -> Vec<String> {
-    // Must match lang-detect's runtime extraction byte-for-byte.
+    // Must match papagan's runtime extraction byte-for-byte.
     let mut padded = String::with_capacity(word.len() + 4);
     padded.push_str("^^");
     padded.push_str(word);

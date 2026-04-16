@@ -9,4 +9,4 @@ __pycache__/
 
 # Regenerateable artifacts — not tracked.
 /reports/
-/lang-detect/tests/fixtures/accuracy_large.tsv
+/papagan/tests/fixtures/accuracy_large.tsv

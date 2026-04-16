@@ -12,7 +12,7 @@ const MIN_ACCURACY_PCT: f32 = 95.0;
 #[test]
 fn overall_accuracy_does_not_regress() {
     let content = include_str!("fixtures/accuracy.tsv");
-    let detector = lang_detect::Detector::new();
+    let detector = papagan::Detector::new();
 
     let mut correct = 0;
     let mut total = 0;

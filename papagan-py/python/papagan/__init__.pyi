@@ -1,7 +1,7 @@
-"""Public type surface of the `lang_detect` package.
+"""Public type surface of the `papagan` package.
 
 All runtime types live in `_native` (the PyO3 extension module); this stub
-re-exports them so `from lang_detect import X` resolves the same type.
+re-exports them so `from papagan import X` resolves the same type.
 """
 
 from ._native import (

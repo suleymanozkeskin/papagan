@@ -3,9 +3,10 @@ requires = ["maturin>=1.8,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "lang-detect"
+name = "papagan"
 version = "0.1.0"
 description = "Fast language detection for Python powered by Rust"
+readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT OR Apache-2.0" }
 authors = [{ name = "Suleyman" }]
@@ -14,10 +15,15 @@ classifiers = [
   "Programming Language :: Rust",
   "License :: OSI Approved :: MIT License",
   "License :: OSI Approved :: Apache Software License",
+  "Topic :: Text Processing :: Linguistic",
 ]
+
+[project.urls]
+Homepage = "https://github.com/suleymanozkeskin/papagan"
+Repository = "https://github.com/suleymanozkeskin/papagan"
 
 [tool.maturin]
 bindings = "pyo3"
-module-name = "lang_detect._native"
+module-name = "papagan._native"
 python-source = "python"
-include = ["python/lang_detect/py.typed", "python/lang_detect/*.pyi"]
+include = ["python/papagan/py.typed", "python/papagan/*.pyi"]

@@ -6,20 +6,20 @@
 //!   cargo run --release --example bench_accuracy --features all-langs
 //!
 //! Optional args:
-//!   [fixtures-path]  default: lang-detect/tests/fixtures/accuracy.tsv
+//!   [fixtures-path]  default: papagan/tests/fixtures/accuracy.tsv
 //!   [output-path]    default: stdout (prepend - to also print when writing)
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::fs;
 
-use lang_detect::Detector;
+use papagan::Detector;
 
 fn main() {
     let mut args = std::env::args().skip(1);
     let fixtures_path = args
         .next()
-        .unwrap_or_else(|| "lang-detect/tests/fixtures/accuracy.tsv".to_string());
+        .unwrap_or_else(|| "papagan/tests/fixtures/accuracy.tsv".to_string());
     let output_path = args.next();
 
     let content = fs::read_to_string(&fixtures_path).unwrap_or_else(|e| {
@@ -92,7 +92,7 @@ fn build_report(
     confusion: &BTreeMap<(String, String), u32>,
 ) -> String {
     let mut r = String::new();
-    writeln!(r, "# lang-detect accuracy baseline").unwrap();
+    writeln!(r, "# papagan accuracy baseline").unwrap();
     writeln!(r).unwrap();
     writeln!(
         r,
@@ -100,7 +100,7 @@ fn build_report(
         100.0 * correct as f32 / total as f32
     )
     .unwrap();
-    writeln!(r, "- Compiled with whatever features were active at build time. Set `LANG_DETECT_DICT_SIZE` env var or enable `dict-5k`/`dict-10k` features to change dictionary tier.").unwrap();
+    writeln!(r, "- Compiled with whatever features were active at build time. Set `PAPAGAN_DICT_SIZE` env var or enable `dict-5k`/`dict-10k` features to change dictionary tier.").unwrap();
     writeln!(r).unwrap();
 
     writeln!(r, "## Per-language metrics").unwrap();

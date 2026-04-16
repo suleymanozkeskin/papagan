@@ -1,6 +1,6 @@
 """Type stubs for the PyO3 extension module.
 
-This file describes the runtime shape of `lang_detect._native` so type checkers
+This file describes the runtime shape of `papagan._native` so type checkers
 can resolve the import in `__init__.py`. Keep in sync with `src/lib.rs`.
 """
 

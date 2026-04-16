@@ -6,8 +6,8 @@ const path = require('node:path')
 function loadNative() {
   const root = __dirname
   const candidates = [
-    'lang-detect-node.node',
-    `lang-detect-node.${process.platform}-${process.arch}.node`,
+    'papagan.node',
+    `papagan.${process.platform}-${process.arch}.node`,
     `index.${process.platform}-${process.arch}.node`,
     'index.node',
   ]
@@ -25,7 +25,7 @@ function loadNative() {
     }
   }
 
-  throw lastError ?? new Error('Unable to locate the lang-detect native module')
+  throw lastError ?? new Error('Unable to locate the papagan native module')
 }
 
 const native = loadNative()

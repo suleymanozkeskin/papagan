@@ -1,7 +1,10 @@
 [package]
-name = "lang-detect"
+name = "papagan"
 version = "0.1.0"
 description = "Fast, small-binary language detection with opt-in language packs"
+readme = "README.md"
+keywords = ["language", "detection", "nlp", "ngram", "classifier"]
+categories = ["text-processing", "algorithms"]
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -23,7 +26,7 @@ parallel = ["dep:rayon"]
 #              domain-specific inputs but flat on our eval)
 #   dict-10k → 10000 words/lang (~10.5 MB, ~99.7% accuracy — recommended for
 #              PyPI/npm wrapper crates where binary size is cheap)
-# If both are set, the larger wins. `LANG_DETECT_DICT_SIZE` env var overrides.
+# If both are set, the larger wins. `PAPAGAN_DICT_SIZE` env var overrides.
 dict-5k = []
 dict-10k = []
 

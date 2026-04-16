@@ -1,17 +1,17 @@
 [package]
-name = "lang-detect-py"
+name = "papagan-py"
 version = "0.1.0"
 publish = false
-description = "Python bindings for lang-detect"
+description = "Python bindings for papagan"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [lib]
-name = "lang_detect_py"
+name = "papagan_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-lang-detect = { path = "../lang-detect", default-features = false, features = ["all-langs", "parallel"] }
+papagan = { path = "../papagan", default-features = false, features = ["all-langs", "parallel"] }
 pyo3 = { version = "0.28", features = ["abi3-py310"] }

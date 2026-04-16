@@ -3,7 +3,7 @@
 //! Usage:
 //!   cargo run --example detect --release -- "Die Katze sitzt auf der Matte"
 
-use lang_detect::Detector;
+use papagan::Detector;
 
 fn main() {
     let input: String = std::env::args()

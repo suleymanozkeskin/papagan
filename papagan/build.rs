@@ -29,7 +29,7 @@ fn main() {
     emit_ngram(&data_root, out_dir);
 
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-env-changed=LANG_DETECT_DICT_SIZE");
+    println!("cargo:rerun-if-env-changed=PAPAGAN_DICT_SIZE");
 }
 
 // Priority: env var > dict-10k > dict-5k > default 3000. Env var is the
@@ -37,7 +37,7 @@ fn main() {
 // 3k is the empirical knee on a 5000-sentence Tatoeba evaluation — below it
 // accuracy climbs fast, above it the curve is flat until 7k+.
 fn resolve_dict_size() -> usize {
-    if let Ok(s) = env::var("LANG_DETECT_DICT_SIZE") {
+    if let Ok(s) = env::var("PAPAGAN_DICT_SIZE") {
         if let Ok(n) = s.parse() {
             return n;
         }
