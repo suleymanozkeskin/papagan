@@ -1,0 +1,113 @@
+# Accuracy-benchmark fixtures: <iso-639-1>\t<sentence>
+# Each sentence is unambiguously in one language. Mix of short/medium/long and
+# idiomatic/literal. Lines starting with # are ignored.
+
+en	The quick brown fox jumps over the lazy dog.
+en	Hello world how are you today.
+en	She sells seashells by the seashore.
+en	Life is what happens when you are busy making other plans.
+en	Better late than never but better never late.
+en	Actions speak louder than words.
+en	A journey of a thousand miles begins with a single step.
+en	The early bird catches the worm.
+en	Every cloud has a silver lining.
+en	Practice makes perfect indeed.
+
+de	Der schnelle braune Fuchs springt über den faulen Hund.
+de	Guten Morgen wie geht es dir heute.
+de	Die Sonne scheint und der Himmel ist wunderschön blau.
+de	Ich gehe jeden Tag in die Bibliothek um zu lesen.
+de	Das Leben ist wie eine Schachtel Pralinen man weiß nie was man bekommt.
+de	Berlin ist die Hauptstadt von Deutschland und eine pulsierende Stadt.
+de	Die Katze sitzt gemütlich auf der warmen Matte im Wohnzimmer.
+de	Übung macht den Meister so sagt ein altes Sprichwort.
+de	Aller Anfang ist schwer aber man muss trotzdem beginnen.
+de	Der Apfel fällt nicht weit vom Stamm wie die Leute sagen.
+
+tr	Hızlı kahverengi tilki tembel köpeğin üzerinden atlar.
+tr	Merhaba dünya bugün hava çok güzel.
+tr	Ben her gün okula gidiyorum ve çok çalışıyorum.
+tr	Kedi hasırın üstünde rahat rahat oturuyor şu anda.
+tr	Türkiye çok güzel ve tarihi bir ülkedir.
+tr	Annem bana dünyanın en güzel yemeğini pişirir her akşam.
+tr	Hava bugün çok sıcak ve güneşli bir gün.
+tr	Öğretmen dersi çok güzel ve anlaşılır şekilde anlatıyor.
+tr	Damlaya damlaya göl olur derler eskiler.
+tr	Tatlı dil yılanı deliğinden çıkarır derdi büyükannem.
+
+ru	Быстрая коричневая лиса прыгает через ленивую собаку.
+ru	Привет мир сегодня очень хорошая погода.
+ru	Я каждый день хожу в библиотеку читать книги.
+ru	Кот сидит на мягком коврике и мурлычет.
+ru	Москва является столицей России и очень красивым городом.
+ru	Мама готовит самый вкусный ужин в мире каждый вечер.
+ru	Зима в России бывает очень холодной и долгой.
+ru	Студенты усердно учатся в университете целый день.
+ru	Что посеешь то и пожнёшь говорит старая поговорка.
+ru	Тише едешь дальше будешь так гласит народная мудрость.
+
+fr	Le rapide renard brun saute par-dessus le chien paresseux.
+fr	Bonjour le monde aujourd'hui il fait très beau temps.
+fr	Je vais à l'école tous les jours pour apprendre.
+fr	Le chat est assis tranquillement sur le tapis du salon.
+fr	Paris est la capitale de la France et une ville magnifique.
+fr	Ma mère cuisine le meilleur dîner du monde chaque soir.
+fr	J'aime beaucoup lire des livres dans la bibliothèque.
+fr	Petit à petit l'oiseau fait son nid dit un vieux proverbe.
+fr	Mieux vaut tard que jamais comme disent les sages.
+fr	L'habit ne fait pas le moine répète-t-on souvent.
+
+es	El rápido zorro marrón salta sobre el perro perezoso.
+es	Hola mundo hoy hace muy buen tiempo soleado.
+es	Voy a la escuela todos los días para aprender mucho.
+es	El gato está sentado tranquilamente en la alfombra del salón.
+es	Madrid es la capital de España y una ciudad maravillosa.
+es	Mi madre cocina la mejor cena del mundo cada noche.
+es	Me gusta mucho leer libros en la biblioteca pública.
+es	No hay mal que por bien no venga como dice el refrán.
+es	Más vale tarde que nunca es lo que siempre dicen.
+es	En boca cerrada no entran moscas así reza el dicho.
+
+it	La veloce volpe marrone salta sopra il cane pigro.
+it	Ciao mondo oggi fa davvero molto bel tempo.
+it	Vado a scuola tutti i giorni per imparare cose nuove.
+it	Il gatto è seduto tranquillamente sul tappeto del soggiorno.
+it	Roma è la capitale d'Italia e una città meravigliosa.
+it	Mia madre cucina la migliore cena del mondo ogni sera.
+it	Mi piace molto leggere libri nella biblioteca comunale.
+it	Meglio tardi che mai come si suol dire tra la gente.
+it	Chi dorme non piglia pesci dice un vecchio proverbio italiano.
+it	Tra il dire e il fare c'è di mezzo il mare.
+
+nl	De snelle bruine vos springt over de luie hond heen.
+nl	Hallo wereld vandaag is het heel mooi weer buiten.
+nl	Ik ga elke dag naar school om veel te leren.
+nl	De kat zit rustig op de mat in de woonkamer.
+nl	Amsterdam is de hoofdstad van Nederland en een prachtige stad.
+nl	Mijn moeder kookt het beste avondeten van de wereld elke avond.
+nl	Ik lees graag boeken in de openbare bibliotheek.
+nl	Oefening baart kunst zegt een oud Nederlands spreekwoord.
+nl	Beter laat dan nooit is wat mensen vaak zeggen.
+nl	De appel valt niet ver van de boom zoals de mensen zeggen.
+
+pt	A rápida raposa marrom salta sobre o cão preguiçoso.
+pt	Olá mundo hoje está um tempo muito bom e ensolarado.
+pt	Eu vou à escola todos os dias para aprender muito.
+pt	O gato está sentado tranquilamente no tapete da sala.
+pt	Lisboa é a capital de Portugal e uma cidade maravilhosa.
+pt	Minha mãe cozinha o melhor jantar do mundo todas as noites.
+pt	Gosto muito de ler livros na biblioteca pública.
+pt	Quem não arrisca não petisca como diz o ditado popular.
+pt	Antes tarde do que nunca é o que as pessoas sempre dizem.
+pt	A esperança é a última que morre segundo a sabedoria popular.
+
+pl	Szybki brązowy lis skacze nad leniwym psem.
+pl	Witaj świecie dzisiaj jest bardzo piękna pogoda.
+pl	Chodzę do szkoły codziennie żeby się uczyć.
+pl	Kot siedzi spokojnie na dywanie w salonie.
+pl	Warszawa jest stolicą Polski i pięknym miastem.
+pl	Moja mama gotuje najlepszą kolację na świecie każdego wieczoru.
+pl	Lubię bardzo czytać książki w publicznej bibliotece.
+pl	Lepiej późno niż wcale jak mówi stare przysłowie.
+pl	Nie ma róży bez kolców powtarzają ludzie od pokoleń.
+pl	Ziarnko do ziarnka a zbierze się miarka tak mówią starsi.

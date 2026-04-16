@@ -1,0 +1,44 @@
+[package]
+name = "lang-detect"
+version = "0.1.0"
+description = "Fast, small-binary language detection with opt-in language packs"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["en", "parallel"]
+all-langs = ["de", "en", "tr", "ru", "fr", "es", "it", "nl", "pt", "pl"]
+parallel = ["dep:rayon"]
+
+# Dictionary-size tiers. Default (no feature) = 1000 words per language.
+# Enabling a tier bakes in more of the top-frequency list, improving coverage
+# (fewer ngram fallbacks) at the cost of binary size. Picks the max if both
+# are enabled. `LANG_DETECT_DICT_SIZE` env var overrides the feature choice.
+dict-5k = []
+dict-10k = []
+
+de = []
+en = []
+tr = []
+ru = []
+fr = []
+es = []
+it = []
+nl = []
+pt = []
+pl = []
+
+[dependencies]
+phf = { version = "0.11", features = ["macros"] }
+smallvec = "1.13"
+unicode-normalization = "0.1"
+unicode-segmentation = "1.12"
+rayon = { version = "1.10", optional = true }
+
+[build-dependencies]
+phf_codegen = "0.11"
