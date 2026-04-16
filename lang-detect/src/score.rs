@@ -53,6 +53,16 @@ pub enum MatchSource {
     Unknown,
 }
 
+impl MatchSource {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            MatchSource::Dict => "dict",
+            MatchSource::Ngram => "ngram",
+            MatchSource::Unknown => "unknown",
+        }
+    }
+}
+
 // Numerically-stable softmax. See DESIGN.md §7.
 pub(crate) fn softmax_in_place(scores: &mut [(Lang, f32)]) {
     if scores.is_empty() {
@@ -77,17 +87,12 @@ pub(crate) fn softmax_in_place(scores: &mut [(Lang, f32)]) {
 // Confidence-weighted document aggregation — each word votes with weight =
 // max(its scores). Peaky distributions dominate; uniform distributions
 // contribute little. See DESIGN.md §7.
-pub(crate) fn aggregate(
-    enabled: &[Lang],
-    words: &[WordScore],
-    unknown_threshold: f32,
-) -> Output {
+pub(crate) fn aggregate(enabled: &[Lang], words: &[WordScore], unknown_threshold: f32) -> Output {
     if words.is_empty() || enabled.is_empty() {
         return Output::unknown();
     }
 
-    let mut totals: SmallVec<[(Lang, f32); 8]> =
-        enabled.iter().map(|&l| (l, 0.0_f32)).collect();
+    let mut totals: SmallVec<[(Lang, f32); 8]> = enabled.iter().map(|&l| (l, 0.0_f32)).collect();
     let mut total_weight = 0.0_f32;
 
     for ws in words {

@@ -1,0 +1,20 @@
+[package]
+name = "lang-detect-node"
+version = "0.1.0"
+publish = false
+description = "Node.js bindings for lang-detect"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+lang-detect = { path = "../lang-detect", default-features = false, features = ["all-langs", "parallel"] }
+napi = { version = "3", default-features = false, features = ["napi8"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"

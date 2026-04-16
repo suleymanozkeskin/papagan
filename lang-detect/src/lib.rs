@@ -13,3 +13,7 @@ mod tokenize;
 pub use detector::{Detector, DetectorBuilder};
 pub use lang::Lang;
 pub use score::{Detailed, MatchSource, Output, WordScore};
+
+pub fn supported_languages() -> &'static [Lang] {
+    Lang::all_enabled()
+}

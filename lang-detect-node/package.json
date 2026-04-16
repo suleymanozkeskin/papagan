@@ -1,0 +1,24 @@
+{
+  "name": "lang-detect",
+  "version": "0.1.0",
+  "description": "Fast language detection for Node.js powered by Rust",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT OR Apache-2.0",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
+  "napi": {
+    "name": "lang-detect-node"
+  },
+  "scripts": {
+    "build": "napi build",
+    "build:platform": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  }
+}

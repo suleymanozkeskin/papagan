@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["lang-detect", "xtask"]
+members = ["lang-detect", "lang-detect-node", "lang-detect-py", "xtask"]
 
 [workspace.package]
 edition = "2024"

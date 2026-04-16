@@ -1,0 +1,23 @@
+[build-system]
+requires = ["maturin>=1.8,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "lang-detect"
+version = "0.1.0"
+description = "Fast language detection for Python powered by Rust"
+requires-python = ">=3.10"
+license = { text = "MIT OR Apache-2.0" }
+authors = [{ name = "Suleyman" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Rust",
+  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: Apache Software License",
+]
+
+[tool.maturin]
+bindings = "pyo3"
+module-name = "lang_detect._native"
+python-source = "python"
+include = ["python/lang_detect/py.typed", "python/lang_detect/*.pyi"]

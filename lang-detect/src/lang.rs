@@ -26,6 +26,33 @@ pub enum Lang {
 }
 
 impl Lang {
+    pub fn from_iso_639_1(code: &str) -> Option<Self> {
+        match code {
+            #[cfg(feature = "de")]
+            "de" => Some(Lang::De),
+            #[cfg(feature = "en")]
+            "en" => Some(Lang::En),
+            #[cfg(feature = "tr")]
+            "tr" => Some(Lang::Tr),
+            #[cfg(feature = "ru")]
+            "ru" => Some(Lang::Ru),
+            #[cfg(feature = "fr")]
+            "fr" => Some(Lang::Fr),
+            #[cfg(feature = "es")]
+            "es" => Some(Lang::Es),
+            #[cfg(feature = "it")]
+            "it" => Some(Lang::It),
+            #[cfg(feature = "nl")]
+            "nl" => Some(Lang::Nl),
+            #[cfg(feature = "pt")]
+            "pt" => Some(Lang::Pt),
+            #[cfg(feature = "pl")]
+            "pl" => Some(Lang::Pl),
+            "?" => Some(Lang::Unknown),
+            _ => None,
+        }
+    }
+
     pub const fn iso_639_1(self) -> &'static str {
         match self {
             #[cfg(feature = "de")]
