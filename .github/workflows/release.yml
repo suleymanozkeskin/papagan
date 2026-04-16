@@ -60,7 +60,6 @@ jobs:
           command: build
           args: --release --out dist --manifest-path papagan-py/Cargo.toml
           manylinux: auto   # musl targets auto-use musllinux_1_2
-          sccache: true
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.target }}
