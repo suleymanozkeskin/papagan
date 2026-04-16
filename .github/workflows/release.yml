@@ -82,9 +82,10 @@ jobs:
           path: dist/*.tar.gz
 
   # -----------------------------------------------------------------------
-  # 2. Build Node native addons. Linux non-native targets (arm64 + musl)
-  #    build inside napi-rs' prebuilt docker images so we don't have to
-  #    juggle sysroots / linker flags on the host.
+  # 2. Build Node native addons. Linux non-native targets cross-compile via
+  #    zig (cargo-zigbuild) — sidesteps napi-rs's docker-image toolchain lag
+  #    and handles all the weird glibc/musl/arch combos from a single x64
+  #    Ubuntu runner.
   # -----------------------------------------------------------------------
   build-node:
     name: napi (${{ matrix.target }})
@@ -92,68 +93,62 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux glibc x64 — native
+          # Native builds
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            docker: ''
-          # Linux glibc arm64 — docker cross
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-          # Linux musl x64 — docker cross (Alpine)
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          # NOTE: aarch64-unknown-linux-musl not yet shipped for Node —
-          # requires cross-compile tooling on top of Alpine. Python has it
-          # via maturin+qemu. Users on Alpine arm64 can build from source
-          # or use the glibc build if libc compat allows.
-          # macOS — arm64 runner handles both targets natively
+            cross: false
           - host: macos-latest
             target: x86_64-apple-darwin
-            docker: ''
+            cross: false
           - host: macos-latest
             target: aarch64-apple-darwin
-            docker: ''
-          # Windows
+            cross: false
           - host: windows-latest
             target: x86_64-pc-windows-msvc
-            docker: ''
+            cross: false
+          # Zig cross-compiled Linux
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            cross: true
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            cross: true
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            cross: true
     runs-on: ${{ matrix.host }}
+    defaults:
+      run:
+        working-directory: papagan-node
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
-        if: matrix.docker == ''
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Setup Rust
-        if: matrix.docker == ''
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
-        if: matrix.docker == ''
         with:
           workspaces: '. -> target'
+      - name: Setup zig (for cross-compile)
+        if: matrix.cross
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+      - name: Install cargo-zigbuild
+        if: matrix.cross
+        run: cargo install --locked cargo-zigbuild
       - name: Build (native)
-        if: matrix.docker == ''
-        working-directory: papagan-node
+        if: ${{ !matrix.cross }}
         run: |
           npm install --ignore-scripts
           npx napi build --release --platform --target ${{ matrix.target }}
-      - name: Build (docker cross)
-        if: matrix.docker != ''
+      - name: Build (zig cross-compile)
+        if: matrix.cross
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace/papagan-node \
-            ${{ matrix.docker }} \
-            bash -c "
-              set -eux
-              npm install --ignore-scripts
-              npx napi build --release --platform --target ${{ matrix.target }}
-            "
+          npm install --ignore-scripts
+          npx napi build --release --platform --target ${{ matrix.target }} --cross-compile
       - uses: actions/upload-artifact@v4
         with:
           name: napi-${{ matrix.target }}
