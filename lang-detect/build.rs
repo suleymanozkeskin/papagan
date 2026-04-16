@@ -32,8 +32,10 @@ fn main() {
     println!("cargo:rerun-if-env-changed=LANG_DETECT_DICT_SIZE");
 }
 
-// Priority: env var > dict-10k > dict-5k > default 1000. Env var is the
+// Priority: env var > dict-10k > dict-5k > default 3000. Env var is the
 // power-user escape hatch; features are the declarative knob for most users.
+// 3k is the empirical knee on a 5000-sentence Tatoeba evaluation — below it
+// accuracy climbs fast, above it the curve is flat until 7k+.
 fn resolve_dict_size() -> usize {
     if let Ok(s) = env::var("LANG_DETECT_DICT_SIZE") {
         if let Ok(n) = s.parse() {
@@ -46,7 +48,7 @@ fn resolve_dict_size() -> usize {
     if env::var("CARGO_FEATURE_DICT_5K").is_ok() {
         return 5_000;
     }
-    1_000
+    3_000
 }
 
 fn emit_dict(data_root: &Path, out_dir: &Path, dict_size: usize) {

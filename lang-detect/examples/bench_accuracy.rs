@@ -100,7 +100,7 @@ fn build_report(
         100.0 * correct as f32 / total as f32
     )
     .unwrap();
-    writeln!(r, "- Features: `all-langs`  |  Defaults: `DICT_SIZE=1000`, `TRIGRAM_K=3000`, `unknown_threshold=0.20`").unwrap();
+    writeln!(r, "- Compiled with whatever features were active at build time. Set `LANG_DETECT_DICT_SIZE` env var or enable `dict-5k`/`dict-10k` features to change dictionary tier.").unwrap();
     writeln!(r).unwrap();
 
     writeln!(r, "## Per-language metrics").unwrap();

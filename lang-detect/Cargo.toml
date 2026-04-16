@@ -15,10 +15,15 @@ default = ["en", "parallel"]
 all-langs = ["de", "en", "tr", "ru", "fr", "es", "it", "nl", "pt", "pl"]
 parallel = ["dep:rayon"]
 
-# Dictionary-size tiers. Default (no feature) = 1000 words per language.
-# Enabling a tier bakes in more of the top-frequency list, improving coverage
-# (fewer ngram fallbacks) at the cost of binary size. Picks the max if both
-# are enabled. `LANG_DETECT_DICT_SIZE` env var overrides the feature choice.
+# Dictionary-size tiers. Default (no feature) = 3000 words per language,
+# the empirical knee on a 5000-sentence Tatoeba eval (~99.4% accuracy, ~4.9 MB
+# for the all-langs example binary). Opt into larger tiers for higher recall
+# at the cost of binary size:
+#   dict-5k  → 5000 words/lang (~6.5 MB, same accuracy — buys headroom on
+#              domain-specific inputs but flat on our eval)
+#   dict-10k → 10000 words/lang (~10.5 MB, ~99.7% accuracy — recommended for
+#              PyPI/npm wrapper crates where binary size is cheap)
+# If both are set, the larger wins. `LANG_DETECT_DICT_SIZE` env var overrides.
 dict-5k = []
 dict-10k = []
 

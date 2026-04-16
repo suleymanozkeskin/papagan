@@ -1,3 +1,7 @@
 /target/
 Cargo.lock
 DESIGN.md
+
+# Regenerateable artifacts — not tracked.
+/reports/
+/lang-detect/tests/fixtures/accuracy_large.tsv

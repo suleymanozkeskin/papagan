@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 anyhow = "1"
+bzip2 = "0.4"
 clap = { version = "4", features = ["derive"] }
 ureq = "2"
 unicode-normalization = "0.1"
