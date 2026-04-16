@@ -1,0 +1,33 @@
+{
+  "name": "papagan-darwin-x64",
+  "version": "0.1.1",
+  "cpu": [
+    "x64"
+  ],
+  "main": "papagan.darwin-x64.node",
+  "files": [
+    "papagan.darwin-x64.node"
+  ],
+  "description": "Fast language detection for Node.js powered by Rust",
+  "keywords": [
+    "language",
+    "detection",
+    "nlp",
+    "ngram",
+    "rust",
+    "native",
+    "napi"
+  ],
+  "homepage": "https://github.com/suleymanozkeskin/papagan",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suleymanozkeskin/papagan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/suleymanozkeskin/papagan/issues"
+  },
+  "os": [
+    "darwin"
+  ]
+}
