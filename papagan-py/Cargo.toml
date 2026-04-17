@@ -1,6 +1,6 @@
 [package]
 name = "papagan-py"
-version = "0.1.1"
+version = "0.1.6"
 publish = false
 description = "Python bindings for papagan"
 edition.workspace = true
