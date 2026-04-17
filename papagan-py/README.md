@@ -10,6 +10,8 @@ Fast language detection for Python, powered by Rust (via [PyO3](https://pyo3.rs)
 ## Install
 
 ```bash
+uv add papagan
+# or
 pip install papagan
 ```
 
@@ -101,7 +103,7 @@ Your type checker (mypy, pyright) will see full signatures for all classes, incl
 
 ## Accuracy
 
-~99.4% on a 5000-sentence Tatoeba evaluation across the 10 supported languages. Per-language precision/recall is best on isolated scripts (Russian, Turkish — perfect) and slightly weaker on the close Iberian pair (Spanish/Portuguese — about 1.5% cross-confusion at dict-5k).
+~99.4% on a 5000-sentence Tatoeba evaluation across the 10 supported languages. Per-language precision/recall is best on isolated scripts (Russian, Turkish — perfect) and slightly weaker on the close Iberian pair (Spanish/Portuguese).
 
 ## License
 

@@ -10,11 +10,13 @@ Fast language detection for Node.js, powered by Rust (via [napi-rs](https://napi
 ## Install
 
 ```bash
-npm install papagan
+bun add papagan
 # or
 pnpm add papagan
 # or
 yarn add papagan
+# or
+npm install papagan
 ```
 
 Prebuilt binaries ship for Linux (x64, arm64 — glibc & musl), macOS (x64, arm64), and Windows (x64). Node.js 18+.

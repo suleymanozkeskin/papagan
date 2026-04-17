@@ -23,8 +23,8 @@ El gato está sentado tranquilamente en la alfombra.  → es  0.991
 
 <table>
 <tr><td><b>Rust</b></td><td><code>cargo add papagan --features all-langs</code></td></tr>
-<tr><td><b>Python</b></td><td><code>pip install papagan</code></td></tr>
-<tr><td><b>Node.js</b></td><td><code>npm install papagan</code></td></tr>
+<tr><td><b>Python</b></td><td><code>uv add papagan</code> or <code>pip install papagan</code></td></tr>
+<tr><td><b>Node.js</b></td><td><code>bun add papagan</code> or <code>npm install papagan</code></td></tr>
 </table>
 
 ## Quick start
@@ -103,9 +103,9 @@ d = Detector(only=["en", "de"])
 const d = Detector.builder().only(['en', 'de']).build()
 ```
 
-### Dictionary tiers (compile time, Rust crate only)
+### Dictionary tiers (compile time)
 
-Controls how many top-frequency words get baked into the binary. The PyPI and npm distributions ship with `dict-5k` baked in by the packager; the raw Rust crate defaults to 3k.
+Controls how many top-frequency words get baked into the binary. The raw Rust crate defaults to 3k, and the Python / Node wrappers in this repo currently build against that same default unless packaging overrides `PAPAGAN_DICT_SIZE`.
 
 | Tier | Flag | Binary (all-langs) | Accuracy on 5000-sentence eval |
 |---|---|---|---|
