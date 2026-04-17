@@ -4,6 +4,8 @@ DESIGN.md
 node_modules/
 dist/
 *.node
+/papagan-py/python/papagan/_native*.so
+/papagan-py/python/papagan/_native*.pyd
 __pycache__/
 .venv/
 
