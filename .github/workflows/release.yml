@@ -225,7 +225,7 @@ jobs:
       - name: Move binaries into platform npm packages
         run: npx napi artifacts
       - name: Publish main + platform packages
-        run: npx napi prepublish -t npm --skip-gh-release
+        run: npx napi pre-publish -t npm --skip-optional-publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

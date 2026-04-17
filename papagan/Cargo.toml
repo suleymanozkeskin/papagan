@@ -1,6 +1,6 @@
 [package]
 name = "papagan"
-version = "0.1.1"
+version = "0.1.2"
 description = "Fast, small-binary language detection with opt-in language packs"
 readme = "README.md"
 keywords = ["language", "detection", "nlp", "ngram", "classifier"]
