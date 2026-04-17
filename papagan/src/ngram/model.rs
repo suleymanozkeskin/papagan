@@ -6,43 +6,54 @@ use crate::lang::Lang;
 use crate::ngram::data;
 use crate::score::softmax_in_place;
 
+// Build ^^word$$ once, record char-start byte offsets, then slice the buffer
+// per trigram. Returns (padded, offsets) so the caller can yield &strs by
+// slicing `padded[offsets[i]..offsets[i+3]]`.
+//
 // Must match xtask/src/main.rs::extract_trigrams byte-for-byte — the runtime
 // model was trained on these exact strings.
-pub(crate) fn extract_trigrams(word: &str) -> SmallVec<[String; 8]> {
+fn padded_with_offsets(word: &str) -> (String, SmallVec<[usize; 16]>) {
     let mut padded = String::with_capacity(word.len() + 4);
     padded.push_str("^^");
     padded.push_str(word);
     padded.push_str("$$");
-    let chars: Vec<char> = padded.chars().collect();
-    let mut out = SmallVec::new();
-    for w in chars.windows(3) {
-        let mut s = String::with_capacity(12);
-        s.extend(w);
-        out.push(s);
+    let mut offsets: SmallVec<[usize; 16]> = padded.char_indices().map(|(i, _)| i).collect();
+    offsets.push(padded.len());
+    (padded, offsets)
+}
+
+#[cfg(test)]
+pub(crate) fn extract_trigrams(word: &str) -> SmallVec<[String; 8]> {
+    let (padded, offsets) = padded_with_offsets(word);
+    if offsets.len() < 4 {
+        return SmallVec::new();
     }
-    out
+    (0..offsets.len() - 3)
+        .map(|i| padded[offsets[i]..offsets[i + 3]].to_string())
+        .collect()
 }
 
 pub(crate) fn score_word(word: &str, enabled: &[Lang]) -> SmallVec<[(Lang, f32); 8]> {
-    let trigrams = extract_trigrams(word);
-    if trigrams.is_empty() {
+    let (padded, offsets) = padded_with_offsets(word);
+    if offsets.len() < 4 {
         return SmallVec::new();
     }
+    let n = offsets.len() - 3;
 
     let mut raw: SmallVec<[(Lang, f32); 8]> = enabled
         .iter()
-        .map(|&l| (l, sum_logprobs(&trigrams, l)))
+        .map(|&l| {
+            let mut sum = 0.0_f32;
+            for i in 0..n {
+                let tri = &padded[offsets[i]..offsets[i + 3]];
+                sum += data::logprob(l, tri);
+            }
+            (l, sum)
+        })
         .collect();
 
     softmax_in_place(&mut raw);
     raw
-}
-
-fn sum_logprobs(trigrams: &[String], lang: Lang) -> f32 {
-    trigrams
-        .iter()
-        .map(|t| data::logprob(lang, t.as_str()))
-        .sum()
 }
 
 #[cfg(test)]
