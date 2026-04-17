@@ -41,6 +41,15 @@
       "x86_64-pc-windows-msvc"
     ]
   },
+  "optionalDependencies": {
+    "papagan-darwin-x64": "0.1.5",
+    "papagan-darwin-arm64": "0.1.5",
+    "papagan-linux-x64-gnu": "0.1.5",
+    "papagan-linux-arm64-gnu": "0.1.5",
+    "papagan-linux-x64-musl": "0.1.5",
+    "papagan-linux-arm64-musl": "0.1.5",
+    "papagan-win32-x64-msvc": "0.1.5"
+  },
   "scripts": {
     "build": "napi build",
     "build:platform": "napi build --platform",

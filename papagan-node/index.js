@@ -1,34 +1,65 @@
 'use strict'
 
-const fs = require('node:fs')
-const path = require('node:path')
+const { existsSync, readFileSync } = require('node:fs')
+const { join } = require('node:path')
 
-function loadNative() {
-  const root = __dirname
-  const candidates = [
-    'papagan.node',
-    `papagan.${process.platform}-${process.arch}.node`,
-    `index.${process.platform}-${process.arch}.node`,
-    'index.node',
-  ]
+const { platform, arch } = process
 
-  let lastError
-  for (const candidate of candidates) {
-    const target = path.join(root, candidate)
-    if (!fs.existsSync(target)) {
-      continue
-    }
-    try {
-      return require(target)
-    } catch (error) {
-      lastError = error
-    }
+let nativeBinding = null
+let loadError = null
+
+// Linux musl detection (vs glibc). Mirrors napi-rs standard pattern.
+function isMusl() {
+  if (process.report && typeof process.report.getReport === 'function') {
+    const { glibcVersionRuntime } = process.report.getReport().header
+    return !glibcVersionRuntime
   }
-
-  throw lastError ?? new Error('Unable to locate the papagan native module')
+  try {
+    const lddPath = require('node:child_process').execSync('which ldd').toString().trim()
+    return readFileSync(lddPath, 'utf8').includes('musl')
+  } catch (_) {
+    return false
+  }
 }
 
-const native = loadNative()
+function tryLoad(triple) {
+  const localPath = join(__dirname, `papagan.${triple}.node`)
+  try {
+    if (existsSync(localPath)) {
+      return require(localPath)
+    }
+    return require(`papagan-${triple}`)
+  } catch (error) {
+    loadError = error
+    return null
+  }
+}
+
+switch (platform) {
+  case 'darwin':
+    if (arch === 'arm64' || arch === 'x64') {
+      nativeBinding = tryLoad(`darwin-${arch}`)
+    }
+    break
+  case 'linux':
+    if (arch === 'x64' || arch === 'arm64') {
+      const libc = isMusl() ? 'musl' : 'gnu'
+      nativeBinding = tryLoad(`linux-${arch}-${libc}`)
+    }
+    break
+  case 'win32':
+    if (arch === 'x64') {
+      nativeBinding = tryLoad('win32-x64-msvc')
+    }
+    break
+}
+
+if (!nativeBinding) {
+  throw loadError ?? new Error(
+    `papagan does not ship a prebuilt binary for ${platform}-${arch}. ` +
+    `Supported: darwin-arm64, darwin-x64, linux-x64 (gnu+musl), linux-arm64 (gnu+musl), win32-x64.`
+  )
+}
 
 const Lang = Object.freeze({
   De: 'de',
@@ -143,7 +174,7 @@ class Detector {
     const only = options.only ?? null
     const unknownThreshold = options.unknownThreshold ?? options.unknown_threshold ?? null
     const parallelThreshold = options.parallelThreshold ?? options.parallel_threshold ?? null
-    this._inner = new native.NativeDetector(only, unknownThreshold, parallelThreshold)
+    this._inner = new nativeBinding.NativeDetector(only, unknownThreshold, parallelThreshold)
   }
 
   static builder() {
@@ -151,7 +182,7 @@ class Detector {
   }
 
   static supported_languages() {
-    return native.supportedLanguages()
+    return nativeBinding.supportedLanguages()
   }
 
   static supportedLanguages() {
