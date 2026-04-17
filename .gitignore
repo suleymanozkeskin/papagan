@@ -10,3 +10,6 @@ __pycache__/
 # Regenerateable artifacts — not tracked.
 /reports/
 /papagan/tests/fixtures/accuracy_large.tsv
+
+# Local-only notes.
+RELEASE-REFERENCE.md
