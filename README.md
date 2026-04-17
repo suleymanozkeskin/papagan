@@ -136,6 +136,19 @@ Disable rayon entirely by building without the `parallel` feature.
 
 Training corpus: [hermitdave/FrequencyWords](https://github.com/hermitdave/FrequencyWords) (OpenSubtitles 2018, MIT licensed).
 
+## Benchmarks
+
+Python wrapper, measured on 1,870 real short titles (239 unique, mostly English with German/French/Spanish mixed in) on an M-series Mac.
+
+| Library | Install size | Median | Mean | P95 | Full sweep (1,870) |
+|---|---:|---:|---:|---:|---:|
+| **papagan** | **3.3 MiB** | **9.3 µs** | **11.3 µs** | **28 µs** | **16.7 ms** |
+| py3langid | 740 KiB | 48 µs | 50 µs | 67 µs | 84 ms |
+| langdetect | 2.3 MiB | 975 µs | 1,243 µs | 3,292 µs | 2,186 ms |
+| lingua (all langs) | 294 MiB | 1,349 µs | 1,816 µs | 5,251 µs | 1,768 ms |
+
+Top-language agreement is essentially identical across all four — papagan matches the feature-rich options on output while being ~5× faster than the next fastest and ~100× faster than lingua/langdetect at a fraction of the disk footprint.
+
 ## How it works
 
 1. **Tokenize** the input with Unicode-aware segmentation + NFKC normalization + default lowercase (preserves Turkish `İ`/`ı`/`I`/`i` as distinct).
