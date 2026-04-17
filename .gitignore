@@ -13,3 +13,6 @@ __pycache__/
 
 # Local-only notes.
 RELEASE-REFERENCE.md
+
+# Local-only benchmark harness (contains client data — do not commit).
+/bench/
