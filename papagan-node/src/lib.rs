@@ -1,9 +1,9 @@
+use napi::bindgen_prelude::{Error, Result, Status};
+use napi_derive::napi;
 use papagan::{
     Detailed as CoreDetailed, Detector as CoreDetector, Lang as CoreLang, Output as CoreOutput,
     WordScore as CoreWordScore,
 };
-use napi::bindgen_prelude::{Error, Result, Status};
-use napi_derive::napi;
 
 fn supported_language_codes() -> Vec<String> {
     papagan::supported_languages()

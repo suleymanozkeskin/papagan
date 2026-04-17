@@ -6,10 +6,7 @@
 use papagan::Detector;
 
 fn main() {
-    let input: String = std::env::args()
-        .skip(1)
-        .collect::<Vec<_>>()
-        .join(" ");
+    let input: String = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
 
     if input.trim().is_empty() {
         eprintln!("usage: detect <text>");

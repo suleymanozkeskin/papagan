@@ -39,7 +39,10 @@ pub(crate) fn score_word(word: &str, enabled: &[Lang]) -> SmallVec<[(Lang, f32);
 }
 
 fn sum_logprobs(trigrams: &[String], lang: Lang) -> f32 {
-    trigrams.iter().map(|t| data::logprob(lang, t.as_str())).sum()
+    trigrams
+        .iter()
+        .map(|t| data::logprob(lang, t.as_str()))
+        .sum()
 }
 
 #[cfg(test)]

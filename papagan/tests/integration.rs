@@ -33,8 +33,16 @@ fn mixed_input_shows_distribution() {
     let d = Detector::new();
     let out = d.detect("The cat is black. Die Katze ist schwarz.");
     let dist = out.distribution();
-    let de = dist.iter().find(|(l, _)| *l == Lang::De).map(|(_, s)| *s).unwrap_or(0.0);
-    let en = dist.iter().find(|(l, _)| *l == Lang::En).map(|(_, s)| *s).unwrap_or(0.0);
+    let de = dist
+        .iter()
+        .find(|(l, _)| *l == Lang::De)
+        .map(|(_, s)| *s)
+        .unwrap_or(0.0);
+    let en = dist
+        .iter()
+        .find(|(l, _)| *l == Lang::En)
+        .map(|(_, s)| *s)
+        .unwrap_or(0.0);
     assert!(de > 0.1, "expected non-trivial German share, got {de}");
     assert!(en > 0.1, "expected non-trivial English share, got {en}");
 }
@@ -160,11 +168,25 @@ fn trilingual_input_returns_distribution_not_unknown() {
         "expected one of de/en/fr as top, got {top:?}"
     );
     let dist = out.distribution();
-    let de = dist.iter().find(|(l, _)| *l == Lang::De).map(|(_, s)| *s).unwrap_or(0.0);
-    let en = dist.iter().find(|(l, _)| *l == Lang::En).map(|(_, s)| *s).unwrap_or(0.0);
-    let fr = dist.iter().find(|(l, _)| *l == Lang::Fr).map(|(_, s)| *s).unwrap_or(0.0);
-    assert!(de > 0.1 && en > 0.1 && fr > 0.1,
-        "expected non-trivial share for all three: de={de} en={en} fr={fr}");
+    let de = dist
+        .iter()
+        .find(|(l, _)| *l == Lang::De)
+        .map(|(_, s)| *s)
+        .unwrap_or(0.0);
+    let en = dist
+        .iter()
+        .find(|(l, _)| *l == Lang::En)
+        .map(|(_, s)| *s)
+        .unwrap_or(0.0);
+    let fr = dist
+        .iter()
+        .find(|(l, _)| *l == Lang::Fr)
+        .map(|(_, s)| *s)
+        .unwrap_or(0.0);
+    assert!(
+        de > 0.1 && en > 0.1 && fr > 0.1,
+        "expected non-trivial share for all three: de={de} en={en} fr={fr}"
+    );
 }
 
 #[cfg(all(feature = "en", feature = "ru"))]

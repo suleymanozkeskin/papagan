@@ -134,7 +134,11 @@ fn emit_ngram(data_root: &Path, out_dir: &Path) {
             builder.build()
         )
         .unwrap();
-        writeln!(out, "pub(crate) const {const_upper}_FLOOR: f32 = {floor:?}_f32;\n").unwrap();
+        writeln!(
+            out,
+            "pub(crate) const {const_upper}_FLOOR: f32 = {floor:?}_f32;\n"
+        )
+        .unwrap();
     }
 
     fs::write(out_dir.join("ngram_data.rs"), out).expect("write ngram_data.rs");

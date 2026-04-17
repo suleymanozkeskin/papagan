@@ -114,14 +114,17 @@ fn build_report(
         let precision = safe_div(tp_l, tp_l + fp_l);
         let recall = safe_div(tp_l, tp_l + fn_l);
         let f1 = safe_div(2.0 * precision * recall, precision + recall);
-        writeln!(r, "| {lang} | {n} | {precision:.3} | {recall:.3} | {f1:.3} |").unwrap();
+        writeln!(
+            r,
+            "| {lang} | {n} | {precision:.3} | {recall:.3} | {f1:.3} |"
+        )
+        .unwrap();
     }
     writeln!(r).unwrap();
 
     // Confusion matrix — actual (rows) × predicted (cols).
     let langs: Vec<String> = support.keys().cloned().collect();
-    let mut all_predicted: std::collections::BTreeSet<String> =
-        langs.iter().cloned().collect();
+    let mut all_predicted: std::collections::BTreeSet<String> = langs.iter().cloned().collect();
     for (_actual, predicted) in confusion.keys() {
         all_predicted.insert(predicted.clone());
     }
