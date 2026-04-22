@@ -46,6 +46,43 @@ enum Cmd {
         seed: u64,
     },
 
+    /// Fetch Leipzig Corpora Collection news sentences, glue them into
+    /// paragraphs, and emit a JSON array suitable for the long-form speed
+    /// bench. Complements `bench/titles.json` (short titles) with
+    /// paragraph-length inputs that trip the parallel code path.
+    FetchLeipzig {
+        /// Comma-separated ISO 639-1 codes.
+        #[arg(
+            long,
+            value_delimiter = ',',
+            default_value = "en,de,tr,ru,fr,es,it,nl,pt,pl"
+        )]
+        langs: Vec<String>,
+
+        /// Number of consecutive sentences to concatenate into each paragraph.
+        #[arg(long, default_value_t = 5)]
+        paragraph_size: usize,
+
+        /// Paragraphs to keep per language after sampling.
+        #[arg(long, default_value_t = 100)]
+        samples: usize,
+
+        /// Leipzig corpus size suffix — one of 10K, 30K, 100K, 300K, 1M.
+        /// Smaller = faster download; plenty of headroom even at 10K for
+        /// the default sample count.
+        #[arg(long, default_value = "10K")]
+        size: String,
+
+        /// Output JSON path (array of strings, shape matches
+        /// `bench/titles.json`).
+        #[arg(long, default_value = "bench/paragraphs.json")]
+        out: String,
+
+        /// Deterministic seed for sentence sampling.
+        #[arg(long, default_value_t = 42)]
+        seed: u64,
+    },
+
     /// Fetch FLORES-200 sentences and build a second accuracy evaluation
     /// fixture — complements the Tatoeba fixture with more formal,
     /// Wikipedia/news-sourced prose (catches OOD regressions the subtitle-
@@ -135,6 +172,14 @@ fn main() -> Result<()> {
             out,
             tarball,
         } => fetch_flores(&langs, &split, &out, tarball.as_deref()),
+        Cmd::FetchLeipzig {
+            langs,
+            paragraph_size,
+            samples,
+            size,
+            out,
+            seed,
+        } => fetch_leipzig(&langs, paragraph_size, samples, &size, &out, seed),
     }
 }
 
@@ -152,6 +197,26 @@ fn iso2_to_iso3(iso2: &str) -> Option<&'static str> {
         "pl" => Some("pol"),
         _ => None,
     }
+}
+
+// Leipzig archives are named "<iso3>_news_<year>_<size>". The year varies
+// per language because Leipzig publishes new packs on different cadences;
+// these are the most recent available as of 2026-04 for each supported lang.
+fn iso2_to_leipzig_corpus(iso2: &str, size: &str) -> Option<String> {
+    let (iso3, year) = match iso2 {
+        "en" => ("eng", "2024"),
+        "de" => ("deu", "2024"),
+        "tr" => ("tur", "2023"),
+        "ru" => ("rus", "2023"),
+        "fr" => ("fra", "2023"),
+        "es" => ("spa", "2023"),
+        "it" => ("ita", "2023"),
+        "nl" => ("nld", "2023"),
+        "pt" => ("por", "2023"),
+        "pl" => ("pol", "2023"),
+        _ => return None,
+    };
+    Some(format!("{iso3}_news_{year}_{size}"))
 }
 
 // FLORES-200 uses BCP-47-style codes with an explicit script subtag. We pin
@@ -365,6 +430,140 @@ fn fetch_flores(
     fs::write(out, content).with_context(|| format!("writing {out}"))?;
     println!("wrote {out} ({total} total sentences across {} langs)", langs.len());
     Ok(())
+}
+
+fn fetch_leipzig(
+    langs: &[String],
+    paragraph_size: usize,
+    samples: usize,
+    size: &str,
+    out: &str,
+    seed: u64,
+) -> Result<()> {
+    if paragraph_size == 0 {
+        anyhow::bail!("--paragraph-size must be >= 1");
+    }
+
+    let mut all_paragraphs: Vec<String> = Vec::new();
+    for iso2 in langs {
+        let corpus = iso2_to_leipzig_corpus(iso2, size)
+            .ok_or_else(|| anyhow::anyhow!("unsupported language code: {iso2}"))?;
+        let url = format!("https://downloads.wortschatz-leipzig.de/corpora/{corpus}.tar.gz");
+        println!("[{iso2}] fetching {url}");
+
+        let resp = ureq::get(&url)
+            .call()
+            .with_context(|| format!("GET {url}"))?;
+        let gz = flate2::read::GzDecoder::new(resp.into_reader());
+        let mut archive = tar::Archive::new(gz);
+
+        let target = format!("{corpus}/{corpus}-sentences.txt");
+        let mut sentences: Vec<String> = Vec::new();
+        for entry in archive.entries()? {
+            let mut entry = entry?;
+            let path_str = entry.path()?.to_string_lossy().into_owned();
+            if path_str != target {
+                continue;
+            }
+            let mut content = String::new();
+            entry
+                .read_to_string(&mut content)
+                .with_context(|| format!("reading {path_str}"))?;
+            // Leipzig format: "<id>\t<sentence>".
+            for line in content.lines() {
+                let Some((_, text)) = line.split_once('\t') else {
+                    continue;
+                };
+                let trimmed = text.trim();
+                if !trimmed.is_empty() {
+                    sentences.push(trimmed.to_string());
+                }
+            }
+            break;
+        }
+        if sentences.is_empty() {
+            anyhow::bail!("no sentences found in {corpus} tarball");
+        }
+
+        // Group consecutive sentences into paragraphs.
+        let mut paragraphs: Vec<String> = sentences
+            .chunks(paragraph_size)
+            .filter(|c| c.len() == paragraph_size)
+            .map(|c| c.join(" "))
+            .collect();
+
+        // Deterministic partial Fisher-Yates to pick `samples` out of all
+        // available paragraphs without bias toward the start of the file.
+        let mut rng = seed
+            .wrapping_add(1)
+            .wrapping_mul(iso2.bytes().map(|b| b as u64).sum::<u64>().wrapping_add(1));
+        let keep = paragraphs.len().min(samples);
+        if paragraphs.len() > keep {
+            for i in 0..keep {
+                let remaining = (paragraphs.len() - i) as u64;
+                let j = i + (lcg_next(&mut rng) % remaining) as usize;
+                paragraphs.swap(i, j);
+            }
+            paragraphs.truncate(keep);
+        }
+
+        println!(
+            "[{iso2}] kept {} paragraphs (avg {} chars)",
+            paragraphs.len(),
+            if paragraphs.is_empty() {
+                0
+            } else {
+                paragraphs.iter().map(|p| p.len()).sum::<usize>() / paragraphs.len()
+            }
+        );
+        all_paragraphs.extend(paragraphs);
+    }
+
+    // Shuffle across languages so the bench doesn't run contiguous per-lang
+    // blocks (which would bias cache behavior).
+    let mut rng = seed.wrapping_add(99);
+    for i in 0..all_paragraphs.len() {
+        let remaining = (all_paragraphs.len() - i) as u64;
+        let j = i + (lcg_next(&mut rng) % remaining) as usize;
+        all_paragraphs.swap(i, j);
+    }
+
+    let mut content = String::from("[");
+    for (i, p) in all_paragraphs.iter().enumerate() {
+        if i > 0 {
+            content.push(',');
+        }
+        content.push_str("\n  ");
+        content.push_str(&json_escape(p));
+    }
+    if !all_paragraphs.is_empty() {
+        content.push('\n');
+    }
+    content.push_str("]\n");
+
+    fs::write(out, content).with_context(|| format!("writing {out}"))?;
+    println!("wrote {out} ({} paragraphs)", all_paragraphs.len());
+    Ok(())
+}
+
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => {
+                let _ = write!(out, "\\u{:04x}", c as u32);
+            }
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 // Simple LCG — deterministic, seeded, no extra dep.

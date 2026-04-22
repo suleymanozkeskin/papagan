@@ -32,6 +32,21 @@ fn load_titles() -> Vec<String> {
     })
 }
 
+// Long-form sweep. Loads `bench/paragraphs.json` (Leipzig-derived, built via
+// `cargo xtask fetch-leipzig`). Missing file → bench group is skipped so
+// developers without the fixture can still run the titles bench.
+fn load_paragraphs() -> Option<Vec<String>> {
+    let path = env::var("PAPAGAN_BENCH_PARAGRAPHS")
+        .map(PathBuf::from)
+        .ok()
+        .or_else(|| {
+            let p = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bench/paragraphs.json");
+            p.exists().then_some(p)
+        })?;
+    let raw = fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&raw).ok()
+}
+
 fn unique_preserving(titles: &[String]) -> Vec<String> {
     let mut seen = HashSet::new();
     let mut out = Vec::new();
@@ -95,6 +110,46 @@ fn bench_detector(c: &mut Criterion) {
         )
     });
     full.finish();
+
+    // Long-form regime: paragraphs concatenated from Leipzig news sentences.
+    // Exercises the aggregation path and tips into the parallel code path
+    // for inputs with >64 words.
+    if let Some(paragraphs) = load_paragraphs() {
+        for p in paragraphs.iter().take(20) {
+            let _ = detector.detect(p);
+        }
+
+        let mut para = c.benchmark_group("detect_paragraph_single");
+        para.throughput(Throughput::Elements(1));
+        let representative = paragraphs
+            .iter()
+            .find(|p| {
+                let w = p.split_whitespace().count();
+                (60..120).contains(&w)
+            })
+            .cloned()
+            .unwrap_or_else(|| paragraphs[0].clone());
+        para.bench_function("representative", |b| {
+            b.iter(|| detector.detect(std::hint::black_box(&representative)))
+        });
+        para.finish();
+
+        let label = format!("all_{}", paragraphs.len());
+        let mut para_sweep = c.benchmark_group("detect_paragraph_sweep");
+        para_sweep.throughput(Throughput::Elements(paragraphs.len() as u64));
+        para_sweep.bench_function(&label, |b| {
+            b.iter_batched(
+                || (),
+                |_| {
+                    for p in &paragraphs {
+                        let _ = detector.detect(std::hint::black_box(p));
+                    }
+                },
+                BatchSize::SmallInput,
+            )
+        });
+        para_sweep.finish();
+    }
 }
 
 criterion_group!(benches, bench_detector);
