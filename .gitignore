@@ -8,6 +8,7 @@ dist/
 /papagan-py/python/papagan/_native*.pyd
 __pycache__/
 .venv/
+.claude
 
 # Regenerateable artifacts — not tracked.
 /reports/
@@ -15,6 +16,6 @@ __pycache__/
 
 # Local-only notes.
 RELEASE-REFERENCE.md
-
+artifacts/
 # Local-only benchmark harness (contains client data — do not commit).
 /bench/
