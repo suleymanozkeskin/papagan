@@ -68,6 +68,28 @@ for (const word of detailed.words) {
 const [topLang, confidence] = detailed.aggregate.top()
 ```
 
+### Batch detection
+
+For multi-document workloads, `detectBatch` fans out across cores via rayon — **~3.5× faster** than a `for` loop over `detect()` on 1000 Leipzig paragraphs (130 ms → 36 ms) on an 8-core M-series. Short titles see ~4–5× because dict-hit scoring amortizes rayon setup better.
+
+```ts
+const docs = ['The cat sat', 'Die Katze sitzt', 'Le chat est assis', 'El gato está sentado']
+
+const results = detector.detectBatch(docs)              // Output[]
+const detailed = detector.detectDetailedBatch(docs)     // Detailed[]
+
+for (const o of results) console.log(o.top())
+```
+
+**Blocks the V8 thread for the duration** — for large batches on a request hot path, offload to a [Worker Thread](https://nodejs.org/api/worker_threads.html):
+
+```js
+const { Worker } = require('node:worker_threads')
+// spawn a worker that owns its own Detector and handles batches off the main loop.
+```
+
+Batches of fewer than 4 inputs fall back through the per-call path, so there's no small-batch regression.
+
 ### Restrict to specific languages
 
 ```ts
@@ -82,7 +104,8 @@ const detector = Detector.builder().only(['en', 'de']).build()
 const detector = new Detector({
   only: ['en', 'de', 'fr'],    // restrict to a subset
   unknownThreshold: 0.25,      // below this => Lang.Unknown
-  parallelThreshold: 128,      // parallelize at 128+ words
+  parallelThreshold: 32,       // parallelize per-word work at 32+ tokens (default)
+  // set parallelThreshold to a very large number to opt out of rayon entirely
 })
 ```
 
@@ -102,7 +125,12 @@ All 10 languages bundled — no build-time configuration.
 
 ## Accuracy
 
-~99.4% on a 5000-sentence Tatoeba evaluation across the 10 supported languages. Runs in a few microseconds per sentence on a modern laptop; for long documents, per-word scoring automatically parallelizes above a 64-word threshold.
+Measured on two independent held-out corpora across the 10 supported languages:
+
+- **Tatoeba** (5,000 sentences, 500/lang, 20–200 chars — subtitle-shaped): **99.4 %**
+- **FLORES-200 devtest** (10,120 sentences, 1,012/lang — Wikipedia/news prose): **99.9 %**
+
+Runs in a few microseconds per sentence on a modern laptop; for long documents, per-word scoring automatically parallelizes above a 32-word threshold. Multi-document workloads should use `detectBatch` for another 3–5× speedup.
 
 ## License
 

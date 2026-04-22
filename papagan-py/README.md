@@ -55,6 +55,24 @@ print(detailed.aggregate.distribution())
 # [('de', 0.52), ('en', 0.48)]
 ```
 
+### Batch detection
+
+For multi-document workloads, `detect_batch` fans out across cores via rayon **and releases the GIL** while running — so concurrent Python threads can do other work and scale-out on ThreadPoolExecutor behaves as expected:
+
+```python
+docs = ["The cat sat", "Die Katze sitzt", "Le chat est assis", "El gato está sentado"]
+
+results = detector.detect_batch(docs)              # list[Output]
+detailed = detector.detect_detailed_batch(docs)    # list[Detailed]
+
+for o in results:
+    print(o.top())
+```
+
+On a 1000-paragraph batch (Leipzig news, avg 84 words each, 8-core M-series), `detect_batch` is **~3.5× faster** than calling `detect()` in a Python loop — 90 ms → 26 ms. On 1870 short titles it's **~5× faster** (16 ms → 3 ms) since rayon setup amortizes better over dict-hit-heavy tokens.
+
+Batches smaller than 4 fall back through the normal per-call path so there's no small-batch regression.
+
 ### Restrict to specific languages
 
 Faster and more confident when you know the input's language set in advance:
@@ -71,7 +89,8 @@ detector = Detector.builder().only(["en", "de"]).build()
 detector = Detector(
     only=["en", "de", "fr"],       # restrict to a subset
     unknown_threshold=0.25,         # below this => ("?", ...) aka Lang.Unknown
-    parallel_threshold=128,         # parallelize at 128+ words
+    parallel_threshold=32,          # parallelize per-word work at 32+ tokens (default)
+    # set parallel_threshold to a very large number to opt out of rayon entirely
 )
 ```
 
@@ -103,7 +122,12 @@ Your type checker (mypy, pyright) will see full signatures for all classes, incl
 
 ## Accuracy
 
-~99.4% on a 5000-sentence Tatoeba evaluation across the 10 supported languages. Per-language precision/recall is best on isolated scripts (Russian, Turkish — perfect) and slightly weaker on the close Iberian pair (Spanish/Portuguese).
+Measured on two independent held-out corpora across the 10 supported languages:
+
+- **Tatoeba** (5,000 sentences, 500/lang, 20–200 chars — subtitle-shaped): **99.4 %**
+- **FLORES-200 devtest** (10,120 sentences, 1,012/lang — Wikipedia/news prose): **99.9 %**
+
+Per-language precision/recall is best on isolated scripts (Russian, Turkish, Polish — ~perfect) and slightly weaker on the close Romance cluster (Spanish/Portuguese/Italian). Accuracy is higher on FLORES because longer documents give the aggregation more evidence per input.
 
 ## License
 

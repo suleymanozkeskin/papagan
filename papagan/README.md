@@ -53,6 +53,18 @@ for word in &detailed.words {
 let (top_lang, top_score) = detailed.aggregate.top();
 ```
 
+### Batch detection
+
+For multi-document workloads, `detect_batch` fans out across cores via rayon — ~3× on 1000 Leipzig paragraphs, ~5× on 1870 short titles, on an 8-core M-series.
+
+```rust
+let docs = vec!["the cat sat", "die katze sitzt", "le chat est assis", "el gato está sentado"];
+let results = detector.detect_batch(&docs);                 // Vec<Output>
+let detailed = detector.detect_detailed_batch(&docs);       // Vec<Detailed>
+```
+
+Works with `&[&str]`, `Vec<String>`, `&[String]` (anything `AsRef<str> + Sync`). Batches of fewer than 4 inputs fall back through the per-call path, preserving intra-document parallelism. Setting `parallel_threshold(usize::MAX)` on the builder opts out of rayon at both levels.
+
 ### Builder
 
 ```rust
@@ -61,7 +73,7 @@ use papagan::{Detector, Lang};
 let detector = Detector::builder()
     .only([Lang::En, Lang::De])       // restrict to a subset
     .unknown_threshold(0.25)           // below this => Lang::Unknown
-    .parallel_threshold(128)           // parallelize at 128+ words
+    .parallel_threshold(128)           // per-word parallelism kicks in at 128+
     .build();
 ```
 
@@ -82,27 +94,37 @@ Each language is an independent feature — binary size scales linearly with ena
 
 ### Dictionary size tiers
 
-How many top-frequency words get baked into the binary per language. Default is 3k — the empirical accuracy knee on a 5000-sentence Tatoeba eval.
+How many top-frequency words get baked into the binary per language. Default is 3k — the empirical accuracy knee across two independent evals: Tatoeba (short, subtitle-style) and FLORES-200 devtest (long-form, Wikipedia/news).
 
-| Setting | Binary (all-langs) | Accuracy |
-|---|---|---|
-| `PAPAGAN_DICT_SIZE=1000` env var | 3.3 MB | 99.1% |
-| **default (3k)** | **4.9 MB** | **99.4%** |
-| `features = ["dict-5k"]` | 6.5 MB | 99.4% |
-| `features = ["dict-10k"]` | 10.5 MB | 99.7% |
+| Setting | Binary (all-langs) | Tatoeba 5k | FLORES-200 devtest 10k |
+|---|---|---|---|
+| `PAPAGAN_DICT_SIZE=1000` env var | 3.3 MB | 99.1% | — |
+| **default (3k)** | **4.9 MB** | **99.4%** | **99.9%** |
+| `features = ["dict-5k"]` | 6.5 MB | 99.4% | — |
+| `features = ["dict-10k"]` | 10.5 MB | 99.7% | — |
 
-Env var overrides feature choice. Larger dict = fewer trigram fallbacks + better classification of rare words.
+Env var overrides feature choice. Larger dict = fewer trigram fallbacks + better classification of rare words. Both fixtures are regeneratable via `cargo xtask fetch-eval` / `cargo xtask fetch-flores`.
 
 ### Parallelism
 
-- `parallel` (default, behind `dep:rayon`) — per-word scoring runs on a rayon thread pool for inputs at or above `parallel_threshold` (default 64 words).
-- Opt out with `default-features = false, features = ["en"]` to get a serial, no-rayon build for embedded/wasm/minimal binaries.
+Two levels of rayon, both controlled by the `parallel` feature (default on, behind `dep:rayon`):
+
+- **Intra-document** — per-word scoring parallelizes for inputs at or above `parallel_threshold` (default 32, tuned via `examples/parallel_sweep.rs` on Leipzig paragraphs and short titles).
+- **Batch-level** — `detect_batch` / `detect_detailed_batch` fan out across documents when the batch is ≥ 4. Intra-document parallelism is forced serial inside the batch loop to avoid nested rayon.
+
+Setting `parallel_threshold(usize::MAX)` on the builder disables rayon at both levels. Compile without the `parallel` feature (`default-features = false, features = ["en"]`) for a serial, no-rayon build for embedded/wasm/minimal binaries.
 
 ## API
 
 ```rust
 pub struct Detector { /* ... */ }
-pub struct DetectorBuilder { /* ... */ }
+impl Detector {
+    pub fn detect(&self, input: &str) -> Output;
+    pub fn detect_detailed(&self, input: &str) -> Detailed;
+    pub fn detect_batch<S: AsRef<str> + Sync>(&self, inputs: &[S]) -> Vec<Output>;
+    pub fn detect_detailed_batch<S: AsRef<str> + Sync>(&self, inputs: &[S]) -> Vec<Detailed>;
+}
+pub struct DetectorBuilder { /* only, unknown_threshold, parallel_threshold */ }
 
 pub struct Output      { /* top(), distribution() */ }
 pub struct Detailed    { pub words: Vec<WordScore>, pub aggregate: Output }
