@@ -216,6 +216,24 @@ class Detector {
   detectDetailedBatch(inputs) {
     return this._inner.detectDetailedBatch(inputs).map((raw) => new Detailed(raw))
   }
+
+  detect_batch_async(inputs) {
+    return this.detectBatchAsync(inputs)
+  }
+
+  async detectBatchAsync(inputs) {
+    const raws = await this._inner.detectBatchAsync(inputs)
+    return raws.map((raw) => new Output(raw))
+  }
+
+  detect_detailed_batch_async(inputs) {
+    return this.detectDetailedBatchAsync(inputs)
+  }
+
+  async detectDetailedBatchAsync(inputs) {
+    const raws = await this._inner.detectDetailedBatchAsync(inputs)
+    return raws.map((raw) => new Detailed(raw))
+  }
 }
 
 function supported_languages() {

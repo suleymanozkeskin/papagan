@@ -79,7 +79,8 @@ export declare class Detector {
    * Detect languages for a batch of inputs. When the batch size is ≥ 4,
    * detection runs in parallel across documents via rayon and returns one
    * result per input in the original order. Blocks the V8 thread for the
-   * duration — for large batches on request hot paths, offload to a Worker.
+   * duration — for request hot paths where tail latency on other work
+   * matters, prefer `detectBatchAsync`.
    */
   detect_batch(inputs: string[]): Output[]
   /** camelCase alias of `detect_batch`. */
@@ -87,6 +88,18 @@ export declare class Detector {
   detect_detailed_batch(inputs: string[]): Detailed[]
   /** camelCase alias of `detect_detailed_batch`. */
   detectDetailedBatch(inputs: string[]): Detailed[]
+  /**
+   * Async batch detection. Runs on libuv's thread pool, so the V8 event loop
+   * stays free during the call. Returns a Promise resolving to one result
+   * per input in original order. Use this in request handlers or anywhere
+   * event-loop latency on concurrent work matters.
+   */
+  detect_batch_async(inputs: string[]): Promise<Output[]>
+  /** camelCase alias of `detect_batch_async`. */
+  detectBatchAsync(inputs: string[]): Promise<Output[]>
+  detect_detailed_batch_async(inputs: string[]): Promise<Detailed[]>
+  /** camelCase alias of `detect_detailed_batch_async`. */
+  detectDetailedBatchAsync(inputs: string[]): Promise<Detailed[]>
 }
 
 export declare function supported_languages(): LangCode[]

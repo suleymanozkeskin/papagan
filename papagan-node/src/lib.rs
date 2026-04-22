@@ -1,4 +1,6 @@
-use napi::bindgen_prelude::{Error, Result, Status};
+use std::sync::Arc;
+
+use napi::bindgen_prelude::{AsyncTask, Env, Error, Result, Status, Task};
 use napi_derive::napi;
 use papagan::{
     Detailed as CoreDetailed, Detector as CoreDetector, Lang as CoreLang, Output as CoreOutput,
@@ -101,7 +103,57 @@ impl From<CoreDetailed> for Detailed {
 
 #[napi]
 pub struct NativeDetector {
-    inner: CoreDetector,
+    // Arc so we can cheaply share a reference with async tasks running on the
+    // libuv thread pool. `CoreDetector` is `Send + Sync` (primitives + `Vec<Lang>`),
+    // so `Arc<CoreDetector>` is safe to move between threads.
+    inner: Arc<CoreDetector>,
+}
+
+pub struct DetectBatchTask {
+    detector: Arc<CoreDetector>,
+    inputs: Vec<String>,
+}
+
+impl Task for DetectBatchTask {
+    type Output = Vec<Output>;
+    type JsValue = Vec<Output>;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        // Runs on libuv's thread pool — V8 event loop stays free.
+        Ok(self
+            .detector
+            .detect_batch(&self.inputs)
+            .into_iter()
+            .map(Output::from)
+            .collect())
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output)
+    }
+}
+
+pub struct DetectDetailedBatchTask {
+    detector: Arc<CoreDetector>,
+    inputs: Vec<String>,
+}
+
+impl Task for DetectDetailedBatchTask {
+    type Output = Vec<Detailed>;
+    type JsValue = Vec<Detailed>;
+
+    fn compute(&mut self) -> Result<Self::Output> {
+        Ok(self
+            .detector
+            .detect_detailed_batch(&self.inputs)
+            .into_iter()
+            .map(Detailed::from)
+            .collect())
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+        Ok(output)
+    }
 }
 
 #[napi]
@@ -123,7 +175,7 @@ impl NativeDetector {
             builder = builder.parallel_threshold(threshold as usize);
         }
         Ok(Self {
-            inner: builder.build(),
+            inner: Arc::new(builder.build()),
         })
     }
 
@@ -140,8 +192,8 @@ impl NativeDetector {
     // Sync batch call — blocks the V8 thread for the duration of detection.
     // For most Node workloads (REST handlers, CLI tools) this is fine since
     // the batch is N× faster than calling `detect` in a loop, so total wall
-    // time on the hot path is reduced. For long-running batches, callers
-    // should offload this to a Worker Thread.
+    // time on the hot path is reduced. For long-running batches on
+    // latency-sensitive event loops, use `detect_batch_async` instead.
     #[napi]
     pub fn detect_batch(&self, inputs: Vec<String>) -> Vec<Output> {
         self.inner
@@ -158,6 +210,29 @@ impl NativeDetector {
             .into_iter()
             .map(Detailed::from)
             .collect()
+    }
+
+    // Async batch — returns a Promise. Detection runs on libuv's thread pool,
+    // so the V8 event loop stays responsive during the batch. Use this in
+    // request handlers where tail-latency on other work matters more than
+    // throughput on this particular call.
+    #[napi(ts_return_type = "Promise<Output[]>")]
+    pub fn detect_batch_async(&self, inputs: Vec<String>) -> AsyncTask<DetectBatchTask> {
+        AsyncTask::new(DetectBatchTask {
+            detector: self.inner.clone(),
+            inputs,
+        })
+    }
+
+    #[napi(ts_return_type = "Promise<Detailed[]>")]
+    pub fn detect_detailed_batch_async(
+        &self,
+        inputs: Vec<String>,
+    ) -> AsyncTask<DetectDetailedBatchTask> {
+        AsyncTask::new(DetectDetailedBatchTask {
+            detector: self.inner.clone(),
+            inputs,
+        })
     }
 }
 

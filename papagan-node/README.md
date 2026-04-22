@@ -81,12 +81,21 @@ const detailed = detector.detectDetailedBatch(docs)     // Detailed[]
 for (const o of results) console.log(o.top())
 ```
 
-**Blocks the V8 thread for the duration** — for large batches on a request hot path, offload to a [Worker Thread](https://nodejs.org/api/worker_threads.html):
+**Blocks the V8 thread for the duration.** For request handlers or anywhere tail-latency on other work matters, prefer the async variant — it runs on libuv's thread pool so the event loop stays free:
 
-```js
-const { Worker } = require('node:worker_threads')
-// spawn a worker that owns its own Detector and handles batches off the main loop.
+```ts
+const results = await detector.detectBatchAsync(docs)          // Promise<Output[]>
+const detailed = await detector.detectDetailedBatchAsync(docs) // Promise<Detailed[]>
 ```
+
+Throughput is essentially identical to sync; the async path pays a small per-call fixed cost but keeps the event loop responsive. Measured on a 1000-paragraph batch:
+
+| | Wall time | Max event-loop stall |
+|---|---:|---:|
+| `detectBatch` (sync) | 34 ms | **35 ms** (fully blocks event loop) |
+| `detectBatchAsync` | 36 ms | **13 ms** |
+
+Run `node examples/event-loop-latency.js` in this repo to reproduce.
 
 Batches of fewer than 4 inputs fall back through the per-call path, so there's no small-batch regression.
 
