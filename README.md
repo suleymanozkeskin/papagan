@@ -171,33 +171,88 @@ Training corpus: [hermitdave/FrequencyWords](https://github.com/hermitdave/Frequ
 
 ## Benchmarks
 
-Two regimes matter for language detection — short, query-shaped inputs (search boxes, titles, social) and long-form documents (news articles, Wikipedia paragraphs). papagan is benched against both.
+Two axes matter for a language detector: how well it classifies each supported language (**accuracy**) and how fast it runs under each binding + API combination (**performance**). Both are benched on the same machine in one session and fully reproducible via the commands at the bottom of this section.
 
-### Short inputs — cross-library comparison
 
-Python wrapper, 1,870 real short titles (239 unique, mostly English with de/fr/es mixed in), M-series Mac.
+### Performance matrix — binding × library × workload
 
-| Library | Install size | Median | Mean | P95 | Full sweep (1,870) |
-|---|---:|---:|---:|---:|---:|
-| **papagan** | **3.3 MiB** | **9.3 µs** | **11.3 µs** | **28 µs** | **16.7 ms** |
-| py3langid | 740 KiB | 48 µs | 50 µs | 67 µs | 84 ms |
-| langdetect | 2.3 MiB | 975 µs | 1,243 µs | 3,292 µs | 2,186 ms |
-| lingua (all langs) | 294 MiB | 1,349 µs | 1,816 µs | 5,251 µs | 1,768 ms |
+Measured on Darwin arm64, 2026-04-22, all-langs release build, 8 cores. Median of 7 full-sweep iterations per cell.
 
-Top-language agreement is essentially identical across all four — papagan matches the feature-rich options on output while being ~5× faster than the next fastest and ~100× faster than lingua/langdetect at a fraction of the disk footprint.
+Both workloads come from open corpora: Tatoeba sentences (CC-BY 2.0 FR; `cargo xtask fetch-eval`) and Leipzig news paragraphs (CC-BY 4.0; `cargo xtask fetch-leipzig`). `Tokens` / `Bytes` anchor the absolute amount of work per row; `ns/tok` is the derived per-token rate — the cleanest cross-library comparison since it normalizes out workload size.
 
-### Long-form and batch — internal regimes
+| Binding | Library | Tokens | Bytes | Loop (ms) | Loop (ns/tok) | Batch (ms) | Batch (ns/tok) | Async (ms) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| Rust | papagan | 35k | 222 KB | **31.25** | **900** | **7.98** | **230** | — |
+| Rust | papagan | 87k | 620 KB | **77.82** | **898** | **23.04** | **266** | — |
+| Python | papagan | 35k | 222 KB | **32.94** | **949** | **9.67** | **279** | — |
+| Python | papagan | 87k | 620 KB | **79.94** | **923** | **23.74** | **274** | — |
+| Python | py3langid | 35k | 222 KB | 223.59 | 6 442 | — | — | — |
+| Python | py3langid | 87k | 620 KB | 120.81 | 1 395 | — | — | — |
+| Python | langdetect | 35k | 222 KB | 6 959.25 | 200 526 | — | — | — |
+| Python | langdetect | 87k | 620 KB | 1 348.72 | 15 570 | — | — | — |
+| Python | lingua (all langs) | 35k | 222 KB | 3 700.01 | 106 613 | — | — | — |
+| Python | lingua (all langs) | 87k | 620 KB | 2 675.98 | 30 893 | — | — | — |
+| Node | papagan | 35k | 222 KB | **49.90** | **1 438** | **30.06** | **866** | 27.17 |
+| Node | papagan | 87k | 620 KB | **91.58** | **1 057** | **30.65** | **354** | 28.21 |
 
-1000 Leipzig news paragraphs (median 84 words, range 31–166) and the 1,870 titles above. M-series, 8 cores, all-langs release build.
+`Loop` is a serial `for ... detect()` over the whole fixture. `Batch` submits it in one call with rayon fan-out inside. `Async` runs on libuv's thread pool (Node only) — wall time is ~same as sync but the V8 event loop stays responsive (see `papagan-node/examples/event-loop-latency.js`). Competitor libraries don't have batch APIs, so their batch columns are empty; the comparison is on `Loop (ns/tok)`.
 
-| Regime | Serial `for detect()` | `detect_batch([...])` | Speedup |
-|---|---:|---:|---:|
-| Paragraphs (1000 × ~84 words) | 84 ms / 84 µs per call | 26 ms / 26 µs per call | **3.2×** |
-| Titles (1870 × ~8 words) | 16 ms / 8.4 µs per call | 3.3 ms / 1.8 µs per call | **4.8×** |
+**Reading the ns/token column:**
 
-Titles win bigger because they're dict-hit heavy (near-zero per-call work, so rayon setup amortizes well); paragraphs are ngram-heavy and hit memory-bandwidth limits on the shared PHF trigram table when all cores run concurrently. Scales top out around 3.9× on 8 cores.
+- **papagan is 900–950 ns/token on loop, ~270 ns/token on batch** — throughput is consistent across workload size (flat from 35k to 87k tokens), so the rate is a real throughput number.
+- **py3langid is 6 442 ns/tok on short sentences, 1 395 on paragraphs** — huge fixed per-call overhead that amortizes as inputs grow.
+- **langdetect is 200 526 ns/tok on short sentences** — catastrophically slow on short inputs (re-seeded Java-ported detector per call), recovers to 15 570 on longer documents.
+- **lingua (all langs) is 106 613 → 30 893 ns/tok** — loads a vast model; throughput scales with input length but never catches the lightweight detectors.
 
-Reproduce with `cargo run --release --example batch_sweep --features all-langs` (requires `bench/paragraphs.json` — see `cargo xtask fetch-leipzig`).
+Performance is essentially flat across natural languages — the tokenize fast-path for pure-ASCII inputs (en/es/it/nl/fr/pt) is marginally faster than the unicode path (de with umlauts, pl, ru, tr), but within ±20 % at worst.
+
+
+### Accuracy by language — two independent corpora
+
+Measured on Darwin arm64, 2026-04-22.
+
+Tatoeba: **4,971 / 5,000 (99.42 %)**.  FLORES-200 devtest: **10,106 / 10,120 (99.86 %)**.
+
+| Lang | Tatoeba acc (n) | FLORES acc (n) | Common miss (predicted instead) |
+|---|---:|---:|---|
+| de | 100.0 % (500) | 99.9 % (1012) | → nl (1) |
+| en | 99.2 % (500) | 99.9 % (1012) | → it (2), fr (1) |
+| es | 98.0 % (500) | 99.6 % (1012) | → pt (6), it (5) |
+| fr | 99.4 % (500) | 99.7 % (1012) | → en (2), it (2) |
+| it | 99.6 % (500) | 99.9 % (1012) | → tr (2), nl (1) |
+| nl | 99.8 % (500) | 99.9 % (1012) | → en (1), es (1) |
+| pl | 99.6 % (500) | 100.0 % (1012) | → it (1), pt (1) |
+| pt | 98.6 % (500) | 99.7 % (1012) | → it (4), es (3) |
+| ru | 100.0 % (500) | 100.0 % (1012) | — |
+| tr | 100.0 % (500) | 100.0 % (1012) | — |
+
+Tatoeba is the training-distribution-adjacent eval (subtitle-shaped, close to the OpenSubtitles corpus the FrequencyWords model was trained on); FLORES-200 devtest is the OOD robustness eval (Wikipedia/news translations, unseen during training). papagan clears 98 % on every supported language on both fixtures; the weakest cell is Spanish/Portuguese on Tatoeba due to Romance cluster overlap.
+
+### How to reproduce benchmarks
+
+Two commands regenerate every number in this section. Commit the outputs when you release.
+
+```bash
+# Accuracy (both fixtures):
+cargo run --release --example accuracy_matrix --features all-langs
+
+# Performance matrix — Rust + Python (including competitors, if installed) + Node:
+./scripts/bench-matrix.sh
+```
+
+Prereqs for the orchestrator:
+- `papagan/tests/fixtures/accuracy_large.tsv` — regenerate via `cargo xtask fetch-eval`
+- `bench/paragraphs.json` — regenerate via `cargo xtask fetch-leipzig`
+- `papagan-py/.venv` with `maturin develop --release` (for the Python rows)
+- `papagan-node/` built via `npm run build:platform` (for the Node rows)
+
+To include Python competitor rows in the matrix:
+
+```bash
+papagan-py/.venv/bin/pip install py3langid langdetect lingua-language-detector
+```
+
+Accuracy fixtures: `accuracy_flores.tsv` is committed; `accuracy_large.tsv` (Tatoeba) is gitignored and regenerated via `cargo xtask fetch-eval`.
 
 ## How it works
 
