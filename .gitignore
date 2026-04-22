@@ -13,6 +13,7 @@ __pycache__/
 # Regenerateable artifacts — not tracked.
 /reports/
 /papagan/tests/fixtures/accuracy_large.tsv
+/papagan-node/native.generated.d.ts
 
 # Local-only notes.
 RELEASE-REFERENCE.md

@@ -259,6 +259,30 @@ impl Detector {
     fn detect_detailed(&self, input: &str) -> Detailed {
         Detailed::from(self.inner.detect_detailed(input))
     }
+
+    // The `py.allow_threads` wrapper releases the GIL while the Rust batch
+    // runs — rayon worker threads never touch Python state, so they execute
+    // uncontended against any concurrent Python threads. This is what makes
+    // `detect_batch` genuinely parallel for CPU-bound Python callers.
+    fn detect_batch(&self, py: Python<'_>, inputs: Vec<String>) -> Vec<Output> {
+        py.detach(|| {
+            self.inner
+                .detect_batch(&inputs)
+                .into_iter()
+                .map(Output::from)
+                .collect()
+        })
+    }
+
+    fn detect_detailed_batch(&self, py: Python<'_>, inputs: Vec<String>) -> Vec<Detailed> {
+        py.detach(|| {
+            self.inner
+                .detect_detailed_batch(&inputs)
+                .into_iter()
+                .map(Detailed::from)
+                .collect()
+        })
+    }
 }
 
 #[pyfunction]

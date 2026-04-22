@@ -42,12 +42,51 @@ impl Detector {
     }
 
     pub fn detect_detailed(&self, input: &str) -> Detailed {
+        self.detect_detailed_with_threshold(input, self.parallel_threshold)
+    }
+
+    /// Detect languages for a batch of inputs. When the `parallel` feature
+    /// is enabled, the batch is large enough (≥ 4 items), and the caller has
+    /// not disabled rayon via `parallel_threshold(usize::MAX)`, documents are
+    /// scored in parallel at the batch level and each document's intra-word
+    /// pipeline falls back to serial — avoiding nested rayon and letting the
+    /// work-steal pool saturate cores at the outer level. For smaller batches
+    /// (or when the caller has opted out of rayon) the call falls through to
+    /// the regular per-item path so the configured `parallel_threshold` is
+    /// respected end-to-end.
+    pub fn detect_batch<S: AsRef<str> + Sync>(&self, inputs: &[S]) -> Vec<Output> {
+        if !self.should_batch_parallel(inputs.len()) {
+            return inputs.iter().map(|s| self.detect(s.as_ref())).collect();
+        }
+        parallel::par_map_batch(inputs, |s| {
+            self.detect_detailed_with_threshold(s.as_ref(), usize::MAX)
+                .aggregate
+        })
+    }
+
+    pub fn detect_detailed_batch<S: AsRef<str> + Sync>(&self, inputs: &[S]) -> Vec<Detailed> {
+        if !self.should_batch_parallel(inputs.len()) {
+            return inputs.iter().map(|s| self.detect_detailed(s.as_ref())).collect();
+        }
+        parallel::par_map_batch(inputs, |s| {
+            self.detect_detailed_with_threshold(s.as_ref(), usize::MAX)
+        })
+    }
+
+    // `parallel_threshold(usize::MAX)` is the documented way to opt out of
+    // rayon entirely — honor it at the batch level too, so the knob fully
+    // controls parallelism across both word- and document-level scoring.
+    fn should_batch_parallel(&self, batch_len: usize) -> bool {
+        self.parallel_threshold != usize::MAX && batch_len >= parallel::BATCH_PARALLEL_THRESHOLD
+    }
+
+    fn detect_detailed_with_threshold(&self, input: &str, parallel_threshold: usize) -> Detailed {
         let tokens = tokenize::tokenize(input);
         if tokens.is_empty() {
             return Detailed::empty();
         }
 
-        let words = parallel::map_words(tokens, self.parallel_threshold, |t| self.score_word(t));
+        let words = parallel::map_words(tokens, parallel_threshold, |t| self.score_word(t));
         let aggregate = score::aggregate(&self.enabled, &words, self.unknown_threshold);
 
         Detailed { words, aggregate }

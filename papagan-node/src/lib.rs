@@ -136,6 +136,29 @@ impl NativeDetector {
     pub fn detect_detailed(&self, input: String) -> Detailed {
         Detailed::from(self.inner.detect_detailed(&input))
     }
+
+    // Sync batch call — blocks the V8 thread for the duration of detection.
+    // For most Node workloads (REST handlers, CLI tools) this is fine since
+    // the batch is N× faster than calling `detect` in a loop, so total wall
+    // time on the hot path is reduced. For long-running batches, callers
+    // should offload this to a Worker Thread.
+    #[napi]
+    pub fn detect_batch(&self, inputs: Vec<String>) -> Vec<Output> {
+        self.inner
+            .detect_batch(&inputs)
+            .into_iter()
+            .map(Output::from)
+            .collect()
+    }
+
+    #[napi]
+    pub fn detect_detailed_batch(&self, inputs: Vec<String>) -> Vec<Detailed> {
+        self.inner
+            .detect_detailed_batch(&inputs)
+            .into_iter()
+            .map(Detailed::from)
+            .collect()
+    }
 }
 
 #[napi]

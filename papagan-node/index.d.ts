@@ -48,7 +48,7 @@ export declare class DetectorBuilder {
   unknown_threshold(threshold: number): DetectorBuilder
   /** camelCase alias of `unknown_threshold`. */
   unknownThreshold(threshold: number): DetectorBuilder
-  /** Word count at or above which per-word scoring runs in parallel (default 64). */
+  /** Word count at or above which per-word scoring runs in parallel (default 32). */
   parallel_threshold(threshold: number): DetectorBuilder
   /** camelCase alias of `parallel_threshold`. */
   parallelThreshold(threshold: number): DetectorBuilder
@@ -75,6 +75,18 @@ export declare class Detector {
   detect_detailed(input: string): Detailed
   /** camelCase alias of `detect_detailed`. */
   detectDetailed(input: string): Detailed
+  /**
+   * Detect languages for a batch of inputs. When the batch size is ≥ 4,
+   * detection runs in parallel across documents via rayon and returns one
+   * result per input in the original order. Blocks the V8 thread for the
+   * duration — for large batches on request hot paths, offload to a Worker.
+   */
+  detect_batch(inputs: string[]): Output[]
+  /** camelCase alias of `detect_batch`. */
+  detectBatch(inputs: string[]): Output[]
+  detect_detailed_batch(inputs: string[]): Detailed[]
+  /** camelCase alias of `detect_detailed_batch`. */
+  detectDetailedBatch(inputs: string[]): Detailed[]
 }
 
 export declare function supported_languages(): LangCode[]

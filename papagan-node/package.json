@@ -51,8 +51,8 @@
     "papagan-win32-x64-msvc": "0.1.6"
   },
   "scripts": {
-    "build": "napi build",
-    "build:platform": "napi build --platform",
+    "build": "napi build --release --dts native.generated.d.ts",
+    "build:platform": "napi build --release --platform --dts native.generated.d.ts --no-js",
     "prepublishOnly": "napi prepublish -t npm"
   },
   "devDependencies": {

@@ -200,6 +200,22 @@ class Detector {
   detectDetailed(input) {
     return new Detailed(this._inner.detectDetailed(input))
   }
+
+  detect_batch(inputs) {
+    return this.detectBatch(inputs)
+  }
+
+  detectBatch(inputs) {
+    return this._inner.detectBatch(inputs).map((raw) => new Output(raw))
+  }
+
+  detect_detailed_batch(inputs) {
+    return this.detectDetailedBatch(inputs)
+  }
+
+  detectDetailedBatch(inputs) {
+    return this._inner.detectDetailedBatch(inputs).map((raw) => new Detailed(raw))
+  }
 }
 
 function supported_languages() {

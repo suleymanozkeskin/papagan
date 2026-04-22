@@ -118,6 +118,98 @@ fn builder_parallel_threshold_is_respected() {
     assert_eq!(out.top().0, Lang::En);
 }
 
+#[cfg(feature = "en")]
+#[test]
+fn detect_batch_matches_per_call() {
+    // Batch results must match a per-call loop one-for-one. This test is
+    // en-only on purpose so it runs under default features (where CI lives)
+    // and has ≥ 4 items so it actually exercises the par_map_batch path
+    // above BATCH_PARALLEL_THRESHOLD.
+    let d = Detector::new();
+    let inputs: Vec<&str> = vec![
+        "the quick brown fox jumps over the lazy dog",
+        "how are you doing today my friend",
+        "language detection is a fun problem to solve",
+        "she sells sea shells by the sea shore",
+        "a stitch in time saves nine",
+        "the rain in spain falls mainly on the plain",
+    ];
+    assert!(
+        inputs.len() >= 4,
+        "test must exceed BATCH_PARALLEL_THRESHOLD"
+    );
+    let serial: Vec<_> = inputs.iter().map(|s| d.detect(s).top().0).collect();
+    let batched: Vec<_> = d.detect_batch(&inputs).into_iter().map(|o| o.top().0).collect();
+    assert_eq!(serial, batched);
+
+    // Small-batch fallback — below BATCH_PARALLEL_THRESHOLD, falls through
+    // to the per-call path.
+    let small = &inputs[..2];
+    let serial: Vec<_> = small.iter().map(|s| d.detect(s).top().0).collect();
+    let batched: Vec<_> = d.detect_batch(small).into_iter().map(|o| o.top().0).collect();
+    assert_eq!(serial, batched);
+
+    // Empty input.
+    let empty: Vec<&str> = Vec::new();
+    assert!(d.detect_batch(&empty).is_empty());
+}
+
+#[cfg(feature = "en")]
+#[test]
+fn detect_detailed_batch_matches_per_call() {
+    // Same coverage guarantee for the detailed variant — one result per
+    // input, same top language as the per-call path.
+    let d = Detector::new();
+    let inputs: Vec<&str> = vec![
+        "one two three four five",
+        "the thermodynamics of irreversible processes",
+        "hello world this is a test",
+        "she sells sea shells",
+        "a quick brown fox",
+    ];
+    let serial: Vec<_> = inputs.iter().map(|s| d.detect_detailed(s)).collect();
+    let batched = d.detect_detailed_batch(&inputs);
+    assert_eq!(serial.len(), batched.len());
+    for (i, (s, b)) in serial.iter().zip(batched.iter()).enumerate() {
+        assert_eq!(
+            s.aggregate.top().0,
+            b.aggregate.top().0,
+            "mismatch at index {i}"
+        );
+        assert_eq!(s.words.len(), b.words.len(), "word count mismatch at {i}");
+    }
+}
+
+#[cfg(feature = "en")]
+#[test]
+fn detect_batch_accepts_string_slices() {
+    // AsRef<str> bound — Vec<String> should work without intermediate refs.
+    let d = Detector::new();
+    let owned: Vec<String> = vec!["the cat sat".into(), "on the mat".into()];
+    let out = d.detect_batch(&owned);
+    assert_eq!(out.len(), 2);
+}
+
+#[cfg(feature = "en")]
+#[test]
+fn detect_batch_respects_parallel_threshold_opt_out() {
+    // Setting parallel_threshold to usize::MAX is the documented opt-out
+    // for rayon — it must suppress batch-level parallelism too, otherwise
+    // users who explicitly disable parallelism still get cross-document
+    // rayon fan-out. Correctness check: results match a per-call loop.
+    let d = Detector::builder().parallel_threshold(usize::MAX).build();
+    let inputs: Vec<&str> = vec![
+        "the quick brown fox",
+        "jumps over the lazy dog",
+        "hello world test",
+        "one two three four",
+        "five six seven eight",
+    ];
+    let serial: Vec<_> = inputs.iter().map(|s| d.detect(s).top().0).collect();
+    let batched: Vec<_> = d.detect_batch(&inputs).into_iter().map(|o| o.top().0).collect();
+    assert_eq!(serial, batched);
+}
+
 #[cfg(all(feature = "en", feature = "ru"))]
 #[test]
 fn detects_russian() {
