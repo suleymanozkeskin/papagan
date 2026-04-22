@@ -120,14 +120,26 @@ def classify(text: str) -> LangCode:
 
 Your type checker (mypy, pyright) will see full signatures for all classes, including the `LangCode` and `MatchSource` Literal types.
 
+## Benchmarks
+
+Measured on Darwin arm64, 2026-04-22. Open fixtures: Tatoeba sentences (CC-BY 2.0 FR) and Leipzig news paragraphs (CC-BY 4.0). `ns/tok` is the per-token rate — the cleanest cross-library comparison since it normalizes out workload size. Full cross-binding matrix and reproduction commands live in the [repository README](https://github.com/suleymanozkeskin/papagan#benchmarks).
+
+| Library | Tokens | Bytes | Loop (ms) | Loop (ns/tok) | Batch (ms) | Batch (ns/tok) |
+|---|---:|---:|---:|---:|---:|---:|
+| **papagan** | 35k | 222 KB | **32.94** | **949** | **9.67** | **279** |
+| **papagan** | 87k | 620 KB | **79.94** | **923** | **23.74** | **274** |
+| py3langid | 35k | 222 KB | 223.59 | 6 442 | — | — |
+| py3langid | 87k | 620 KB | 120.81 | 1 395 | — | — |
+| langdetect | 35k | 222 KB | 6 959.25 | 200 526 | — | — |
+| langdetect | 87k | 620 KB | 1 348.72 | 15 570 | — | — |
+| lingua (all langs) | 35k | 222 KB | 3 700.01 | 106 613 | — | — |
+| lingua (all langs) | 87k | 620 KB | 2 675.98 | 30 893 | — | — |
+
+papagan chews through ~950 ns/token on loop and ~275 ns/token with `detect_batch` — flat across workload size, **~7× ahead of py3langid** on short sentences, **~110× ahead of lingua**, **~210× ahead of langdetect**. `detect_batch` releases the GIL so `ThreadPoolExecutor` scales as expected.
+
 ## Accuracy
 
-Measured on two independent held-out corpora across the 10 supported languages:
-
-- **Tatoeba** (5,000 sentences, 500/lang, 20–200 chars — subtitle-shaped): **99.4 %**
-- **FLORES-200 devtest** (10,120 sentences, 1,012/lang — Wikipedia/news prose): **99.9 %**
-
-Per-language precision/recall is best on isolated scripts (Russian, Turkish, Polish — ~perfect) and slightly weaker on the close Romance cluster (Spanish/Portuguese/Italian). Accuracy is higher on FLORES because longer documents give the aggregation more evidence per input.
+**99.42 %** on Tatoeba (5,000 sentences) and **99.86 %** on FLORES-200 devtest (10,120 sentences) across the 10 supported languages. Per-language precision/recall is best on isolated scripts (Russian, Turkish, Polish — ~perfect) and slightly weaker on the close Romance cluster (Spanish/Portuguese/Italian); full per-language table in the [repository README](https://github.com/suleymanozkeskin/papagan#accuracy-by-language--two-independent-corpora).
 
 ## License
 

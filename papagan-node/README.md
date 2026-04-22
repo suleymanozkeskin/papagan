@@ -132,14 +132,20 @@ Both `camelCase` and `snake_case` are supported on builders and options (`unknow
 
 All 10 languages bundled — no build-time configuration.
 
+## Benchmarks
+
+Measured on Darwin arm64, 2026-04-22. Open fixtures: Tatoeba sentences (CC-BY 2.0 FR) and Leipzig news paragraphs (CC-BY 4.0). `ns/tok` is the per-token rate. Full cross-binding matrix (including Python competitor comparison) in the [repository README](https://github.com/suleymanozkeskin/papagan#benchmarks).
+
+| Tokens | Bytes | Loop (ms) | Loop (ns/tok) | Batch sync (ms) | Batch (ns/tok) | Batch async (ms) |
+|---:|---:|---:|---:|---:|---:|---:|
+| 35k | 222 KB | **49.90** | **1 438** | **30.06** | **866** | 27.17 |
+| 87k | 620 KB | **91.58** | **1 057** | **30.65** | **354** | 28.21 |
+
+`detectBatch` fans out across cores via rayon (2–4× over a `for detect()` loop). `detectBatchAsync` runs on libuv's thread pool — same wall time as sync but the V8 event loop stays responsive (max stall drops from ~35 ms → ~11 ms on a 1000-paragraph batch; see `examples/event-loop-latency.js`).
+
 ## Accuracy
 
-Measured on two independent held-out corpora across the 10 supported languages:
-
-- **Tatoeba** (5,000 sentences, 500/lang, 20–200 chars — subtitle-shaped): **99.4 %**
-- **FLORES-200 devtest** (10,120 sentences, 1,012/lang — Wikipedia/news prose): **99.9 %**
-
-Runs in a few microseconds per sentence on a modern laptop; for long documents, per-word scoring automatically parallelizes above a 32-word threshold. Multi-document workloads should use `detectBatch` for another 3–5× speedup.
+**99.42 %** on Tatoeba (5,000 sentences) and **99.86 %** on FLORES-200 devtest (10,120 sentences) across the 10 supported languages. Full per-language precision/recall table in the [repository README](https://github.com/suleymanozkeskin/papagan#accuracy-by-language--two-independent-corpora).
 
 ## License
 

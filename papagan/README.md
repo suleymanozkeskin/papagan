@@ -136,6 +136,19 @@ pub enum MatchSource   { Dict, Ngram, Unknown }
 
 See [`docs.rs/papagan`](https://docs.rs/papagan) for full signatures.
 
+## Benchmarks
+
+Measured on Darwin arm64, 2026-04-22, all-langs release build. Open fixtures: Tatoeba sentences (CC-BY 2.0 FR) and Leipzig news paragraphs (CC-BY 4.0). `ns/tok` is the per-token rate. Full cross-binding matrix (including Python competitor comparison) and reproduction commands in the [repository README](https://github.com/suleymanozkeskin/papagan#benchmarks).
+
+| Tokens | Bytes | Loop (ms) | Loop (ns/tok) | Batch (ms) | Batch (ns/tok) |
+|---:|---:|---:|---:|---:|---:|
+| 35k | 222 KB | **31.25** | **900** | **7.98** | **230** |
+| 87k | 620 KB | **77.82** | **898** | **23.04** | **266** |
+
+~900 ns/token on loop and ~250 ns/token with `detect_batch` — flat throughput across workload size, ~4× speedup under rayon fan-out on 8 cores.
+
+**Accuracy**: 99.42 % on Tatoeba (5,000 sentences) and 99.86 % on FLORES-200 devtest (10,120 sentences). Per-language table in the top-level README.
+
 ## How it works
 
 1. **Tokenize** input with `unicode-segmentation` + NFKC + Unicode default lowercase. Preserves Turkish `İ`/`I`/`ı`/`i` distinctions without needing locale-aware casing at detection time.
