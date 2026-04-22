@@ -3,7 +3,11 @@
 All notable changes to papagan are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased] — planned v0.1.7
+## [Unreleased]
+
+_(nothing yet)_
+
+## [0.1.7] — 2026-04-22
 
 ### Added
 
