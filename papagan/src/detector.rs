@@ -45,17 +45,17 @@ impl Detector {
         self.detect_detailed_with_threshold(input, self.parallel_threshold)
     }
 
-    /// Detect languages for a batch of inputs. When the `parallel` feature
-    /// is enabled, the batch is large enough (≥ 4 items), and the caller has
-    /// not disabled rayon via `parallel_threshold(usize::MAX)`, documents are
-    /// scored in parallel at the batch level and each document's intra-word
-    /// pipeline falls back to serial — avoiding nested rayon and letting the
-    /// work-steal pool saturate cores at the outer level. For smaller batches
-    /// (or when the caller has opted out of rayon) the call falls through to
-    /// the regular per-item path so the configured `parallel_threshold` is
-    /// respected end-to-end.
+    /// Detect languages for a batch of inputs. Routing uses two cheap signals:
+    /// batch cardinality (must be ≥ 2 for rayon to fan out meaningfully) and
+    /// approximate total work (sum of whitespace-word counts across inputs,
+    /// must be ≥ 50 for rayon overhead to amortize). Below either gate — or
+    /// when the caller has opted out via `parallel_threshold(usize::MAX)` —
+    /// the call falls through to the regular per-item path so the configured
+    /// `parallel_threshold` governs intra-document parallelism on each doc.
+    /// See `examples/batch_routing_sweep.rs` for the sweep that set the
+    /// boundaries.
     pub fn detect_batch<S: AsRef<str> + Sync>(&self, inputs: &[S]) -> Vec<Output> {
-        if !self.should_batch_parallel(inputs.len()) {
+        if !self.should_batch_parallel(inputs) {
             return inputs.iter().map(|s| self.detect(s.as_ref())).collect();
         }
         parallel::par_map_batch(inputs, |s| {
@@ -65,7 +65,7 @@ impl Detector {
     }
 
     pub fn detect_detailed_batch<S: AsRef<str> + Sync>(&self, inputs: &[S]) -> Vec<Detailed> {
-        if !self.should_batch_parallel(inputs.len()) {
+        if !self.should_batch_parallel(inputs) {
             return inputs.iter().map(|s| self.detect_detailed(s.as_ref())).collect();
         }
         parallel::par_map_batch(inputs, |s| {
@@ -73,11 +73,23 @@ impl Detector {
         })
     }
 
-    // `parallel_threshold(usize::MAX)` is the documented way to opt out of
-    // rayon entirely — honor it at the batch level too, so the knob fully
-    // controls parallelism across both word- and document-level scoring.
-    fn should_batch_parallel(&self, batch_len: usize) -> bool {
-        self.parallel_threshold != usize::MAX && batch_len >= parallel::BATCH_PARALLEL_THRESHOLD
+    // Gate batch parallelism on cardinality AND approximate total work. The
+    // work proxy (`split_whitespace().count()`) is a ~ns-scale estimate — under
+    // 1% of detection cost — and maps well to per-input work for all the
+    // whitespace-segmented scripts we support (Latin + Cyrillic). Exact
+    // tokenization would double-parse, which isn't worth the precision.
+    fn should_batch_parallel<S: AsRef<str>>(&self, inputs: &[S]) -> bool {
+        if self.parallel_threshold == usize::MAX {
+            return false;
+        }
+        if inputs.len() < parallel::BATCH_MIN_CARDINALITY {
+            return false;
+        }
+        let approx_tokens: usize = inputs
+            .iter()
+            .map(|s| s.as_ref().split_whitespace().count())
+            .sum();
+        approx_tokens >= parallel::BATCH_MIN_APPROX_TOKENS
     }
 
     fn detect_detailed_with_threshold(&self, input: &str, parallel_threshold: usize) -> Detailed {

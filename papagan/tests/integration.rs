@@ -129,24 +129,31 @@ fn detect_batch_matches_per_call() {
     let inputs: Vec<&str> = vec![
         "the quick brown fox jumps over the lazy dog",
         "how are you doing today my friend",
-        "language detection is a fun problem to solve",
-        "she sells sea shells by the sea shore",
-        "a stitch in time saves nine",
-        "the rain in spain falls mainly on the plain",
+        "language detection is a fun problem to solve and discuss",
+        "she sells sea shells by the sea shore early in the morning",
+        "a stitch in time saves nine on a busy day",
+        "the rain in spain falls mainly on the plain every year",
     ];
-    assert!(
-        inputs.len() >= 4,
-        "test must exceed BATCH_PARALLEL_THRESHOLD"
-    );
+    // 6 inputs, ~50+ approx-token total — trips both routing gates
+    // (cardinality ≥ 2 and approx_tokens ≥ 50) so par_map_batch runs.
+    let total_words: usize = inputs.iter().map(|s| s.split_whitespace().count()).sum();
+    assert!(total_words >= 50, "test input must exceed approx-tokens gate; got {total_words}");
     let serial: Vec<_> = inputs.iter().map(|s| d.detect(s).top().0).collect();
     let batched: Vec<_> = d.detect_batch(&inputs).into_iter().map(|o| o.top().0).collect();
     assert_eq!(serial, batched);
 
-    // Small-batch fallback — below BATCH_PARALLEL_THRESHOLD, falls through
-    // to the per-call path.
-    let small = &inputs[..2];
+    // Small-batch fallback — below the cardinality gate (N < 2), falls
+    // through to the per-call path.
+    let small = &inputs[..1];
     let serial: Vec<_> = small.iter().map(|s| d.detect(s).top().0).collect();
     let batched: Vec<_> = d.detect_batch(small).into_iter().map(|o| o.top().0).collect();
+    assert_eq!(serial, batched);
+
+    // Low-work fallback — cardinality OK but total approx tokens < 50 so
+    // we route through the per-call path. Results must still match.
+    let tiny = ["a", "b", "c", "the", "a", "b"];  // ~6 tokens total
+    let serial: Vec<_> = tiny.iter().map(|s| d.detect(s).top().0).collect();
+    let batched: Vec<_> = d.detect_batch(&tiny).into_iter().map(|o| o.top().0).collect();
     assert_eq!(serial, batched);
 
     // Empty input.
