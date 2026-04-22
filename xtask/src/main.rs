@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -44,6 +44,34 @@ enum Cmd {
         /// Deterministic seed for reservoir sampling.
         #[arg(long, default_value_t = 42)]
         seed: u64,
+    },
+
+    /// Fetch FLORES-200 sentences and build a second accuracy evaluation
+    /// fixture — complements the Tatoeba fixture with more formal,
+    /// Wikipedia/news-sourced prose (catches OOD regressions the subtitle-
+    /// trained models miss).
+    FetchFlores {
+        /// Comma-separated ISO 639-1 codes.
+        #[arg(
+            long,
+            value_delimiter = ',',
+            default_value = "en,de,tr,ru,fr,es,it,nl,pt,pl"
+        )]
+        langs: Vec<String>,
+
+        /// FLORES-200 split to pull from: `dev` (997 sentences/lang) or
+        /// `devtest` (1012/lang). Devtest is the standard held-out eval split.
+        #[arg(long, default_value = "devtest")]
+        split: String,
+
+        /// Output TSV path (will be overwritten).
+        #[arg(long, default_value = "papagan/tests/fixtures/accuracy_flores.tsv")]
+        out: String,
+
+        /// Path to a pre-downloaded `flores200_dataset.tar.gz`. If set, skips
+        /// the network download (useful for re-running offline).
+        #[arg(long)]
+        tarball: Option<String>,
     },
 
     /// Fetch frequency lists and emit data/<lang>/{words.txt,trigrams.txt}.
@@ -101,6 +129,12 @@ fn main() -> Result<()> {
             max_chars,
             seed,
         } => fetch_eval(&langs, samples, &out, min_chars, max_chars, seed),
+        Cmd::FetchFlores {
+            langs,
+            split,
+            out,
+            tarball,
+        } => fetch_flores(&langs, &split, &out, tarball.as_deref()),
     }
 }
 
@@ -116,6 +150,24 @@ fn iso2_to_iso3(iso2: &str) -> Option<&'static str> {
         "nl" => Some("nld"),
         "pt" => Some("por"),
         "pl" => Some("pol"),
+        _ => None,
+    }
+}
+
+// FLORES-200 uses BCP-47-style codes with an explicit script subtag. We pin
+// the specific script variant each of our supported languages ships in.
+fn iso2_to_flores(iso2: &str) -> Option<&'static str> {
+    match iso2 {
+        "en" => Some("eng_Latn"),
+        "de" => Some("deu_Latn"),
+        "tr" => Some("tur_Latn"),
+        "ru" => Some("rus_Cyrl"),
+        "fr" => Some("fra_Latn"),
+        "es" => Some("spa_Latn"),
+        "it" => Some("ita_Latn"),
+        "nl" => Some("nld_Latn"),
+        "pt" => Some("por_Latn"),
+        "pl" => Some("pol_Latn"),
         _ => None,
     }
 }
@@ -215,6 +267,104 @@ fn fetch_and_sample(
         matches_seen += 1;
     }
     Ok(reservoir)
+}
+
+fn fetch_flores(
+    langs: &[String],
+    split: &str,
+    out: &str,
+    tarball_path: Option<&str>,
+) -> Result<()> {
+    if split != "dev" && split != "devtest" {
+        anyhow::bail!("--split must be 'dev' or 'devtest', got {split:?}");
+    }
+
+    // Build the set of archive paths we care about: `flores_code` → `iso2`.
+    let mut want: HashMap<String, String> = HashMap::new();
+    for iso2 in langs {
+        let code = iso2_to_flores(iso2)
+            .ok_or_else(|| anyhow::anyhow!("unsupported language code: {iso2}"))?;
+        let path = format!("flores200_dataset/{split}/{code}.{split}");
+        want.insert(path, iso2.clone());
+    }
+
+    // Open the archive stream — either from a cached local copy or streamed
+    // straight from Meta's CDN.
+    let url = "https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz";
+    let reader: Box<dyn Read> = if let Some(p) = tarball_path {
+        println!("reading cached tarball from {p}");
+        Box::new(fs::File::open(p).with_context(|| format!("opening {p}"))?)
+    } else {
+        println!("downloading {url} (~40 MB)");
+        Box::new(
+            ureq::get(url)
+                .call()
+                .with_context(|| format!("GET {url}"))?
+                .into_reader(),
+        )
+    };
+    let gz = flate2::read::GzDecoder::new(reader);
+    let mut archive = tar::Archive::new(gz);
+
+    let mut buckets: HashMap<String, Vec<String>> = HashMap::new();
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let raw = entry.path()?.to_string_lossy().into_owned();
+        // Tarball entries are prefixed with "./" — normalize before lookup.
+        let path_str = raw.strip_prefix("./").unwrap_or(&raw).to_string();
+        let Some(iso2) = want.get(&path_str) else {
+            continue;
+        };
+        let mut contents = String::new();
+        entry
+            .read_to_string(&mut contents)
+            .with_context(|| format!("reading {path_str}"))?;
+        let sentences: Vec<String> = contents
+            .lines()
+            .map(|l| l.trim().to_string())
+            .filter(|l| !l.is_empty())
+            .collect();
+        println!("[{iso2}] {} sentences from {path_str}", sentences.len());
+        buckets.insert(iso2.clone(), sentences);
+    }
+
+    for iso2 in langs {
+        if !buckets.contains_key(iso2) {
+            anyhow::bail!(
+                "no FLORES-200 entry found for {iso2} — archive layout may have changed"
+            );
+        }
+    }
+
+    let mut content = String::new();
+    writeln!(
+        content,
+        "# Accuracy-benchmark fixture (FLORES-200) — generated by `cargo xtask fetch-flores`."
+    )?;
+    writeln!(
+        content,
+        "# Source: FLORES-200 — https://github.com/facebookresearch/flores"
+    )?;
+    writeln!(
+        content,
+        "# License: CC-BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)"
+    )?;
+    writeln!(content, "# Split: {split}")?;
+    writeln!(content)?;
+
+    let mut total = 0usize;
+    for iso2 in langs {
+        let sents = buckets.get(iso2).unwrap();
+        for s in sents {
+            let cleaned = s.replace(['\t', '\n', '\r'], " ");
+            writeln!(content, "{iso2}\t{cleaned}")?;
+        }
+        total += sents.len();
+    }
+
+    fs::write(out, content).with_context(|| format!("writing {out}"))?;
+    println!("wrote {out} ({total} total sentences across {} langs)", langs.len());
+    Ok(())
 }
 
 // Simple LCG — deterministic, seeded, no extra dep.

@@ -13,5 +13,7 @@ workspace = true
 anyhow = "1"
 bzip2 = "0.4"
 clap = { version = "4", features = ["derive"] }
+flate2 = "1"
+tar = "0.4"
 ureq = "2"
 unicode-normalization = "0.1"
