@@ -11,7 +11,12 @@ use crate::tokenize;
 // mixed, the top peaks around ~0.33. Anything below 0.20 means we have less
 // than one-in-five confidence — emit Unknown rather than a near-random guess.
 const DEFAULT_UNKNOWN_THRESHOLD: f32 = 0.20;
-const DEFAULT_PARALLEL_THRESHOLD: usize = 64;
+// Threshold picked by sweeping {∞, 1024, 256, 128, 64, 32, 16, 0} on
+// Leipzig paragraphs (median 84 words) and short titles (median 8 words).
+// At 32: titles stay fully serial (p95 = 13 words), paragraphs win ~10% over
+// the prior default of 64. Below 16, short inputs start paying rayon spawn
+// overhead. See examples/parallel_sweep.rs.
+const DEFAULT_PARALLEL_THRESHOLD: usize = 32;
 
 pub struct Detector {
     enabled: Vec<Lang>,
