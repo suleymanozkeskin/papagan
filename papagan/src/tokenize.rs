@@ -3,12 +3,19 @@ use unicode_segmentation::UnicodeSegmentation;
 
 // Tokenize + normalize per DESIGN.md §11:
 //   NFKC, then Unicode default lowercase. Preserves Turkish İ/ı/I/i distinctions.
+//
+// Numeric-only tokens ("802", "2", "1920s-style" minus the letters) are
+// dropped — they carry no language signal but their short trigram footprint
+// produces high-confidence ngram noise that biases aggregation.
+// The training pipeline applies the same filter (xtask/src/main.rs),
+// so runtime behavior matches what the model was trained against.
 pub(crate) fn tokenize(input: &str) -> Vec<String> {
     if input.is_ascii() {
         return tokenize_ascii(input);
     }
     input
         .unicode_words()
+        .filter(|w| w.chars().any(|c| c.is_alphabetic()))
         .map(normalize)
         .filter(|s| !s.is_empty())
         .collect()
@@ -58,6 +65,11 @@ fn ascii_normalize(run: &[u8]) -> Option<String> {
         return None;
     }
     let slice = &run[start..end];
+    // Drop tokens that contain no ASCII letters — see tokenize() note. Keeps
+    // "2pm" and "i18n" (letters present) but filters "802" / "1920".
+    if !slice.iter().any(|b| b.is_ascii_alphabetic()) {
+        return None;
+    }
     let mut s = String::with_capacity(slice.len());
     for &b in slice {
         let lower = if b.is_ascii_uppercase() { b | 0x20 } else { b };
@@ -98,6 +110,7 @@ mod tests {
     fn tokenize_unicode_only(input: &str) -> Vec<String> {
         input
             .unicode_words()
+            .filter(|w| w.chars().any(|c| c.is_alphabetic()))
             .map(normalize)
             .filter(|s| !s.is_empty())
             .collect()
