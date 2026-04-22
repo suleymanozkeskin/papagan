@@ -23,7 +23,10 @@ fn main() {
         titles.len(),
         avg_chars(&titles),
     );
-    eprintln!("available parallelism: {:?}", std::thread::available_parallelism());
+    eprintln!(
+        "available parallelism: {:?}",
+        std::thread::available_parallelism()
+    );
     eprintln!();
 
     let detector = Detector::new();
@@ -34,7 +37,10 @@ fn main() {
     let _ = detector.detect_batch(&para_refs[..20]);
     let _ = detector.detect_batch(&title_refs[..20]);
 
-    println!("## Paragraphs ({} items, median ~84 words)", paragraphs.len());
+    println!(
+        "## Paragraphs ({} items, median ~84 words)",
+        paragraphs.len()
+    );
     println!();
     report(&detector, &para_refs);
 

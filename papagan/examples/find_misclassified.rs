@@ -53,8 +53,13 @@ fn main() {
         }
         misses += 1;
 
-        println!("--- line {} — expected={} predicted={} ({:.3}) ---",
-            line_no + 1, iso, pred, top_score);
+        println!(
+            "--- line {} — expected={} predicted={} ({:.3}) ---",
+            line_no + 1,
+            iso,
+            pred,
+            top_score
+        );
         println!("TEXT: {text}");
         print!("DIST:");
         for (lang, score) in detailed.aggregate.distribution() {
@@ -67,19 +72,30 @@ fn main() {
                 .scores
                 .iter()
                 .fold((Lang::Unknown, 0.0_f32), |acc, (l, s)| {
-                    if *s > acc.1 { (*l, *s) } else { acc }
+                    if *s > acc.1 {
+                        (*l, *s)
+                    } else {
+                        acc
+                    }
                 });
             let src = match w.source {
                 MatchSource::Dict => "dict ",
                 MatchSource::Ngram => "ngram",
                 MatchSource::Unknown => "unk  ",
             };
-            println!("  {src}  {:<20}  {} ({:.2})", w.token, top.0.iso_639_1(), top.1);
+            println!(
+                "  {src}  {:<20}  {} ({:.2})",
+                w.token,
+                top.0.iso_639_1(),
+                top.1
+            );
         }
         println!();
     }
     eprintln!(
         "\n{misses}/{total} misses in {path}{}",
-        filter.map(|f| format!(" (filter: {f})")).unwrap_or_default()
+        filter
+            .map(|f| format!(" (filter: {f})"))
+            .unwrap_or_default()
     );
 }

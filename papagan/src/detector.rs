@@ -66,7 +66,10 @@ impl Detector {
 
     pub fn detect_detailed_batch<S: AsRef<str> + Sync>(&self, inputs: &[S]) -> Vec<Detailed> {
         if !self.should_batch_parallel(inputs) {
-            return inputs.iter().map(|s| self.detect_detailed(s.as_ref())).collect();
+            return inputs
+                .iter()
+                .map(|s| self.detect_detailed(s.as_ref()))
+                .collect();
         }
         parallel::par_map_batch(inputs, |s| {
             self.detect_detailed_with_threshold(s.as_ref(), usize::MAX)

@@ -109,9 +109,11 @@ fn main() {
     for lang in all_langs {
         let t = tat_per.get(lang);
         let f = flr_per.get(lang);
-        let tacc = t.map(|p| format!("{:.1}% ({})", p.accuracy(), p.total))
+        let tacc = t
+            .map(|p| format!("{:.1}% ({})", p.accuracy(), p.total))
             .unwrap_or_else(|| "—".to_string());
-        let facc = f.map(|p| format!("{:.1}% ({})", p.accuracy(), p.total))
+        let facc = f
+            .map(|p| format!("{:.1}% ({})", p.accuracy(), p.total))
             .unwrap_or_else(|| "—".to_string());
         // Merge miss counts from both fixtures for the "common miss" column.
         let mut merged: BTreeMap<String, u32> = BTreeMap::new();

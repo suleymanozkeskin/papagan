@@ -30,8 +30,7 @@ fn main() {
         .iter()
         .map(|p| p.split_whitespace().count())
         .collect();
-    let mean_words =
-        word_counts.iter().sum::<usize>() as f64 / word_counts.len().max(1) as f64;
+    let mean_words = word_counts.iter().sum::<usize>() as f64 / word_counts.len().max(1) as f64;
     let median_words = median(&word_counts);
     eprintln!(
         "loaded {} paragraphs: mean={mean_words:.0} words, median={median_words} words",
@@ -86,12 +85,9 @@ fn main() {
             per_call_nanos.push(start.elapsed().as_nanos());
         }
         per_call_nanos.sort();
-        let median_per_call_us =
-            per_call_nanos[per_call_nanos.len() / 2] as f64 / 1000.0;
+        let median_per_call_us = per_call_nanos[per_call_nanos.len() / 2] as f64 / 1000.0;
 
-        println!(
-            "| {label} | {per_call_us:.2} | {median_per_call_us:.2} | {sweep_ms:.2} |"
-        );
+        println!("| {label} | {per_call_us:.2} | {median_per_call_us:.2} | {sweep_ms:.2} |");
     }
 }
 

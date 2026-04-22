@@ -136,8 +136,20 @@ fn main() {
         for c in cells.iter().filter(|c| c.bucket_label == b.label) {
             let ratio = c.par_us_per_call / c.serial_us_per_call;
             let ratio2 = c.par_minlen2_us_per_call / c.serial_us_per_call;
-            let win = if ratio < 0.95 { "✓" } else if ratio > 1.05 { " " } else { "≈" };
-            let win2 = if ratio2 < 0.95 { "✓" } else if ratio2 > 1.05 { " " } else { "≈" };
+            let win = if ratio < 0.95 {
+                "✓"
+            } else if ratio > 1.05 {
+                " "
+            } else {
+                "≈"
+            };
+            let win2 = if ratio2 < 0.95 {
+                "✓"
+            } else if ratio2 > 1.05 {
+                " "
+            } else {
+                "≈"
+            };
             println!(
                 "| {} | {} | {:.2} | {:.2} | {:.2}× {} | {:.2} | {:.2}× {} |",
                 c.n,
@@ -163,7 +175,13 @@ fn main() {
     for c in sorted {
         let ratio = c.par_us_per_call / c.serial_us_per_call;
         let ratio2 = c.par_minlen2_us_per_call / c.serial_us_per_call;
-        let mark = if ratio < 0.95 { "✓" } else if ratio > 1.05 { " " } else { "≈" };
+        let mark = if ratio < 0.95 {
+            "✓"
+        } else if ratio > 1.05 {
+            " "
+        } else {
+            "≈"
+        };
         println!(
             "| {:>5} | {} | {:>3} | {:.2}× {} | {:.2}× |",
             c.total_tokens, c.bucket_label, c.n, ratio, mark, ratio2

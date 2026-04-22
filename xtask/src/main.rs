@@ -395,9 +395,7 @@ fn fetch_flores(
 
     for iso2 in langs {
         if !buckets.contains_key(iso2) {
-            anyhow::bail!(
-                "no FLORES-200 entry found for {iso2} — archive layout may have changed"
-            );
+            anyhow::bail!("no FLORES-200 entry found for {iso2} — archive layout may have changed");
         }
     }
 
@@ -428,7 +426,10 @@ fn fetch_flores(
     }
 
     fs::write(out, content).with_context(|| format!("writing {out}"))?;
-    println!("wrote {out} ({total} total sentences across {} langs)", langs.len());
+    println!(
+        "wrote {out} ({total} total sentences across {} langs)",
+        langs.len()
+    );
     Ok(())
 }
 
